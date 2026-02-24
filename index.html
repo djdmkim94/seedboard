@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>seedboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>seedboard</h1>
+            <div class="header-actions">
+                <button id="syncBtn" class="btn btn-secondary">
+                    <span class="icon">🔄</span> Sync Metrics
+                </button>
+                <span id="lastSyncedLabel" class="sync-label">Never synced</span>
+                <span id="connectionStatus" class="status connected">Local Storage</span>
+            </div>
+        </header>
+
+        <!-- Account Stats Bar -->
+        <div id="accountStatsBar" class="account-stats-bar hidden">
+            <div class="account-stat">
+                <span class="platform-icon">🎵</span>
+                <strong id="tiktokFollowers">–</strong>
+                <span>TikTok followers</span>
+            </div>
+            <div class="account-divider"></div>
+            <div class="account-stat">
+                <span class="platform-icon">📸</span>
+                <strong id="igFollowers">–</strong>
+                <span>Instagram followers</span>
+            </div>
+        </div>
+
+        <!-- Carousel + This Week row -->
+        <div class="carousel-row">
+            <section class="insight-carousel" id="insightCarousel">
+                <div class="carousel-header">
+                    <span class="carousel-title">⚡ Weekly Performance Snapshot</span>
+                    <div class="carousel-controls">
+                        <button class="carousel-arrow" id="carouselPrev">‹</button>
+                        <button class="carousel-arrow" id="carouselNext">›</button>
+                    </div>
+                </div>
+                <div class="carousel-track-wrapper">
+                    <div class="carousel-track" id="carouselTrack">
+                        <!-- Cards injected by JS -->
+                    </div>
+                </div>
+                <div class="carousel-footer">
+                    <div class="carousel-dots" id="carouselDots"></div>
+                    <div class="carousel-progress-bar">
+                        <div class="carousel-progress-fill" id="carouselProgressFill"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- This Week -->
+            <section class="panel reminders-panel">
+                <h2>This Week</h2>
+                <div id="remindersContent">
+                    <div class="reminder-stats">
+                        <div class="stat overdue">
+                            <span class="stat-number" id="overdueCount">0</span>
+                            <span class="stat-label">Overdue</span>
+                        </div>
+                        <div class="stat due-soon">
+                            <span class="stat-number" id="dueSoonCount">0</span>
+                            <span class="stat-label">Due Soon</span>
+                        </div>
+                        <div class="stat upcoming">
+                            <span class="stat-number" id="upcomingCount">0</span>
+                            <span class="stat-label">This Week</span>
+                        </div>
+                    </div>
+                    <ul id="remindersList" class="reminders-list">
+                        <li class="empty-state">No upcoming deadlines</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+
+        <!-- Content Creation Flow -->
+        <div class="task-flow">
+            <div class="flow-header">
+                <div class="flow-step-label"><span class="step-num">1</span> Content Library</div>
+                <div class="flow-connector">›</div>
+                <div class="flow-step-label"><span class="step-num">2</span> AI Generator</div>
+                <div class="flow-connector">›</div>
+                <div class="flow-step-label"><span class="step-num">3</span> Publish</div>
+            </div>
+            <div class="flow-panels">
+
+                <!-- 1: Content Library -->
+                <section class="panel library-panel">
+                    <div class="panel-header">
+                        <h2>Content Library</h2>
+                        <button id="addContentBtn" class="btn btn-primary"><span class="icon">+</span> Add</button>
+                    </div>
+                    <div class="library-filters">
+                        <select id="statusFilter">
+                            <option value="all">All</option>
+                            <option value="idea">Ideas</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="filmed">Filmed</option>
+                            <option value="edited">Edited</option>
+                            <option value="posted">Posted</option>
+                        </select>
+                        <input type="text" id="searchFilter" placeholder="Search...">
+                    </div>
+                    <div id="libraryList" class="library-list">
+                        <div class="empty-state">No content yet. Add your first idea!</div>
+                    </div>
+                </section>
+
+                <div class="flow-arrow-col">›</div>
+
+                <!-- 2: AI Generator -->
+                <section class="panel generator-panel">
+                    <h2>AI Generator</h2>
+                    <div id="selectedContext" class="selected-context hidden">
+                        <span class="context-label">Using:</span>
+                        <span id="contextTitle" class="context-title"></span>
+                        <button id="clearContext" class="clear-context-btn">×</button>
+                    </div>
+                    <div class="ai-form">
+                        <div class="form-group">
+                            <label for="aiSummary">Content Summary</label>
+                            <textarea id="aiSummary" placeholder="Select an item from the library, or describe your idea..." rows="3"></textarea>
+                        </div>
+                        <button id="generateBtn" class="btn btn-primary">
+                            <span class="icon">✨</span> Generate
+                        </button>
+                        <div id="aiResults" class="ai-results hidden">
+                            <div class="result-group">
+                                <label>Header</label>
+                                <div class="result-content" id="generatedHeader"></div>
+                                <button class="btn-copy" data-target="generatedHeader">Copy</button>
+                            </div>
+                            <div class="result-group">
+                                <label>Caption</label>
+                                <div class="result-content" id="generatedCaption"></div>
+                                <button class="btn-copy" data-target="generatedCaption">Copy</button>
+                            </div>
+                            <div class="result-group">
+                                <label>Hashtags</label>
+                                <div class="result-content hashtags" id="generatedHashtags"></div>
+                                <button class="btn-copy" data-target="generatedHashtags">Copy</button>
+                            </div>
+                            <div class="result-actions">
+                                <button id="useGeneratedBtn" class="btn btn-secondary">Save to Item</button>
+                                <button id="sendToPublishBtn" class="btn btn-primary">Send to Publish →</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="flow-arrow-col">›</div>
+
+                <!-- 3: Publish -->
+                <section class="panel publish-panel">
+                    <h2>Publish</h2>
+                    <div id="publishEmpty" class="publish-empty-state">
+                        <p>Generate content and hit<br><strong>Send to Publish →</strong></p>
+                    </div>
+                    <div id="publishReady" class="hidden">
+                        <div class="publish-copy-group">
+                            <label>Caption</label>
+                            <div class="publish-text" id="publishCaption"></div>
+                            <button class="btn btn-secondary publish-copy-btn" id="copyPublishCaption">Copy Caption</button>
+                        </div>
+                        <div class="publish-copy-group">
+                            <label>Hashtags</label>
+                            <div class="publish-text hashtags" id="publishHashtags"></div>
+                            <button class="btn btn-secondary publish-copy-btn" id="copyPublishHashtags">Copy Hashtags</button>
+                        </div>
+                        <div class="publish-launchers">
+                            <a href="https://www.tiktok.com/upload" target="_blank" class="btn-launch tiktok-launch">🎵 Open TikTok ↗</a>
+                            <a href="https://www.instagram.com" target="_blank" class="btn-launch instagram-launch">📸 Open Instagram ↗</a>
+                        </div>
+                        <div class="publish-checklist">
+                            <p class="checklist-label">Publishing steps</p>
+                            <label class="check-item"><input type="checkbox" class="pub-check"> Caption copied</label>
+                            <label class="check-item"><input type="checkbox" class="pub-check"> Video ready to upload</label>
+                            <label class="check-item"><input type="checkbox" class="pub-check"> Content uploaded</label>
+                            <label class="check-item"><input type="checkbox" class="pub-check"> Link saved back to library</label>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+
+        <!-- Analytics -->
+        <section class="panel analytics-panel">
+            <div class="panel-header">
+                <h2>📊 Analytics</h2>
+                <button id="getInsightsBtn" class="btn btn-secondary">
+                    <span class="icon">🤖</span> AI Insights
+                </button>
+            </div>
+            <div class="analytics-totals" id="analyticsTotals">
+                <div class="analytics-total-item">
+                    <span class="total-value" id="totalViews">–</span>
+                    <span class="total-label">Total Views</span>
+                </div>
+                <div class="analytics-total-item">
+                    <span class="total-value" id="totalLikes">–</span>
+                    <span class="total-label">Total Likes</span>
+                </div>
+                <div class="analytics-total-item">
+                    <span class="total-value" id="avgEngagement">–</span>
+                    <span class="total-label">Avg Engagement</span>
+                </div>
+            </div>
+            <div class="engagement-table-wrapper" id="engagementTableWrapper">
+                <p class="empty-state" style="padding:12px 0;">Loading analytics...</p>
+            </div>
+            <div id="aiInsightsBox" class="ai-insights-box hidden">
+                <h4>🤖 What's Working</h4>
+                <div id="insightsContent" class="insights-content"></div>
+            </div>
+        </section>
+
+        <!-- Add/Edit Content Modal -->
+        <div id="contentModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Add New Content</h3>
+                    <button class="modal-close" id="closeModal">&times;</button>
+                </div>
+                <form id="contentForm">
+                    <input type="hidden" id="contentId">
+                    <div class="form-group">
+                        <label for="contentTitle">Title *</label>
+                        <input type="text" id="contentTitle" required placeholder="Content title or topic">
+                    </div>
+                    <div class="form-group">
+                        <label for="contentSummary">Summary</label>
+                        <textarea id="contentSummary" rows="2" placeholder="Brief description for AI generation"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contentHeader">Header</label>
+                            <input type="text" id="contentHeader" placeholder="Video header text">
+                        </div>
+                        <div class="form-group">
+                            <label for="contentStatus">Status</label>
+                            <select id="contentStatus">
+                                <option value="idea">Idea</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="filmed">Filmed</option>
+                                <option value="edited">Edited</option>
+                                <option value="posted">Posted</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="contentCaption">Caption</label>
+                        <textarea id="contentCaption" rows="3" placeholder="Video caption"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="contentHashtags">Hashtags</label>
+                        <input type="text" id="contentHashtags" placeholder="#tiktok #viral #fyp">
+                    </div>
+                    <div class="form-group">
+                        <label for="contentDueDate">Due Date</label>
+                        <input type="date" id="contentDueDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="contentTiktokUrl">TikTok Link</label>
+                        <input type="url" id="contentTiktokUrl" placeholder="https://www.tiktok.com/@username/video/...">
+                    </div>
+                    <div class="stats-section hidden" id="statsSection">
+                        <label>Performance Stats</label>
+                        <div class="stats-grid">
+                            <div class="form-group">
+                                <label for="contentViews">Views</label>
+                                <input type="number" id="contentViews" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="contentLikes">Likes</label>
+                                <input type="number" id="contentLikes" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="contentComments">Comments</label>
+                                <input type="number" id="contentComments" min="0" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="contentShares">Shares</label>
+                                <input type="number" id="contentShares" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Content</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- View Content Modal -->
+        <div id="viewModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="viewModalTitle">Content Details</h3>
+                    <button class="modal-close" id="closeViewModal">&times;</button>
+                </div>
+                <div class="view-content">
+                    <div class="view-field">
+                        <label>Summary</label>
+                        <p id="viewSummary"></p>
+                    </div>
+                    <div class="view-field">
+                        <label>Header</label>
+                        <p id="viewHeader"></p>
+                    </div>
+                    <div class="view-field">
+                        <label>Caption</label>
+                        <p id="viewCaption"></p>
+                    </div>
+                    <div class="view-field">
+                        <label>Hashtags</label>
+                        <p id="viewHashtags" class="hashtags"></p>
+                    </div>
+                    <div class="view-row">
+                        <div class="view-field">
+                            <label>Status</label>
+                            <p id="viewStatus"></p>
+                        </div>
+                        <div class="view-field">
+                            <label>Due Date</label>
+                            <p id="viewDueDate"></p>
+                        </div>
+                    </div>
+                    <div class="view-field" id="viewTiktokUrlSection">
+                        <label>TikTok Link</label>
+                        <p id="viewTiktokUrl"></p>
+                    </div>
+                    <div class="view-stats" id="viewStatsSection">
+                        <label>Performance</label>
+                        <div class="stats-display">
+                            <div class="stat-item">
+                                <span class="stat-value" id="viewViews">0</span>
+                                <span class="stat-label">Views</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="viewLikes">0</span>
+                                <span class="stat-label">Likes</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="viewComments">0</span>
+                                <span class="stat-label">Comments</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="viewShares">0</span>
+                                <span class="stat-label">Shares</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="editFromView">Edit</button>
+                    <button type="button" class="btn btn-primary" id="closeViewBtn">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <p id="loadingText">Loading...</p>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <script src="sheets-api.js"></script>
+    <script src="ai-generator.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

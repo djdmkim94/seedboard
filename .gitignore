@@ -1,0 +1,8 @@
+# Dependencies
+node_modules/
+
+# Environment variables (API keys — never commit this)
+.env
+
+# OS files
+.DS_Store
