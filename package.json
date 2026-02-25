@@ -1,11 +1,14 @@
 {
-  "name": "tiktok-dashboard",
+  "name": "seedboard",
   "version": "1.0.0",
-  "description": "TikTok Content Creation Dashboard with AI-powered content generation",
+  "description": "Seedboard — content creation dashboard with AI caption generation",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",

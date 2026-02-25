@@ -12,13 +12,30 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data.json');
-const ACCOUNTS_FILE = path.join(__dirname, 'accounts.json');
+// DATA_DIR lets Railway (or any host) point to a persistent volume.
+// Falls back to the project folder for local dev — nothing changes locally.
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const DATA_FILE     = path.join(DATA_DIR, 'data.json');
+const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
+
+// Demo mode — set DEMO_MODE=true in environment to make the app read-only.
+// All write endpoints return a friendly message instead of saving anything.
+const DEMO_MODE = process.env.DEMO_MODE === 'true';
+const WRITE_METHODS = ['POST', 'PUT', 'DELETE'];
+app.use((req, res, next) => {
+    if (DEMO_MODE && WRITE_METHODS.includes(req.method) && req.path.startsWith('/api')) {
+        return res.status(403).json({
+            error: 'Demo mode — this is a read-only preview. Changes are disabled.',
+            demo: true,
+        });
+    }
+    next();
+});
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -394,6 +411,70 @@ Format as short bullet points. No fluff.`,
     }
 
     res.json({ stats, totals, avgEngagement, insights });
+});
+
+/**
+ * POST /api/content/import
+ * Bulk upsert content items from a CSV import.
+ * Matches existing items by URL first, then by title — updates metrics if found, creates if not.
+ */
+app.post('/api/content/import', (req, res) => {
+    const items = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Expected a non-empty array of items' });
+    }
+
+    const data = loadData();
+    let created = 0, updated = 0;
+
+    for (const item of items) {
+        const idx = data.findIndex(d =>
+            (item.tiktokUrl    && d.tiktokUrl    && d.tiktokUrl    === item.tiktokUrl)    ||
+            (item.instagramUrl && d.instagramUrl && d.instagramUrl === item.instagramUrl) ||
+            (d.title && item.title && d.title.toLowerCase().trim() === item.title.toLowerCase().trim())
+        );
+
+        if (idx !== -1) {
+            // Update existing — refresh metrics and any new URL/date fields
+            const e = data[idx];
+            data[idx] = {
+                ...e,
+                views:    item.views    != null ? item.views    : e.views,
+                likes:    item.likes    != null ? item.likes    : e.likes,
+                comments: item.comments != null ? item.comments : e.comments,
+                shares:   item.shares   != null ? item.shares   : e.shares,
+                ...(item.tiktokUrl    && { tiktokUrl: item.tiktokUrl }),
+                ...(item.instagramUrl && { instagramUrl: item.instagramUrl }),
+                ...(item.dueDate      && { dueDate: item.dueDate }),
+                lastImported: new Date().toISOString(),
+            };
+            updated++;
+        } else {
+            // Create new entry
+            data.push({
+                id:          Date.now().toString() + Math.random().toString(36).slice(2, 7),
+                title:       item.title       || 'Untitled',
+                summary:     item.summary     || '',
+                caption:     item.caption     || '',
+                hashtags:    item.hashtags    || '',
+                status:      item.status      || ((item.views || 0) > 0 ? 'posted' : 'idea'),
+                dueDate:     item.dueDate     || '',
+                createdDate: item.createdDate || new Date().toISOString().split('T')[0],
+                tiktokUrl:   item.tiktokUrl   || '',
+                instagramUrl:item.instagramUrl|| '',
+                views:       item.views       || 0,
+                likes:       item.likes       || 0,
+                comments:    item.comments    || 0,
+                shares:      item.shares      || 0,
+                category:    item.category    || '',
+                lastImported: new Date().toISOString(),
+            });
+            created++;
+        }
+    }
+
+    saveData(data);
+    res.json({ created, updated, total: items.length });
 });
 
 /**

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>seedboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client"></script>
@@ -12,13 +15,36 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1>seedboard</h1>
+            <div class="header-brand">
+                <svg class="brand-logo" viewBox="0 0 60 72" fill="none" xmlns="http://www.w3.org/2000/svg" width="32" height="38">
+                    <ellipse cx="26" cy="14" rx="5" ry="10" transform="rotate(-10 26 14)" stroke="#2c5530" stroke-width="3" fill="none"/>
+                    <ellipse cx="36" cy="12" rx="5" ry="10" transform="rotate(15 36 12)" stroke="#2c5530" stroke-width="3" fill="none"/>
+                    <path d="M18 24 C18 24, 16 42, 28 62 C28 62, 30 66, 32 62 C44 42, 42 24, 42 24 C42 20, 18 20, 18 24Z" stroke="#eb7c0d" stroke-width="3" fill="rgba(235,124,13,0.06)" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="22" y1="34" x2="34" y2="34" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                    <line x1="23" y1="42" x2="33" y2="42" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                </svg>
+                <h1 class="brand-name"><span class="brand-seed">seed</span><span class="brand-board">board</span></h1>
+            </div>
             <div class="header-actions">
-                <button id="syncBtn" class="btn btn-secondary">
-                    <span class="icon">🔄</span> Sync Metrics
+                <div class="header-streak">
+                    <span class="streak-badge">🔥 7 day streak</span>
+                    <div class="xp-bar-wrap">
+                        <div class="xp-bar-track">
+                            <div class="xp-bar-fill" style="width: 65%"></div>
+                        </div>
+                        <span class="xp-label">Lv. 4 · 650/1000</span>
+                    </div>
+                </div>
+                <button id="calendarBtn" class="btn btn-secondary">
+                    <span class="icon">📅</span> Calendar
                 </button>
-                <span id="lastSyncedLabel" class="sync-label">Never synced</span>
-                <span id="connectionStatus" class="status connected">Local Storage</span>
+                <button id="syncBtn" class="btn btn-secondary">
+                    <span class="icon">🔄</span> Sync
+                </button>
+                <span id="connectionStatus" class="status connected">●</span>
+                <button class="avatar-btn" id="cropPickerBtn">
+                    <span id="avatarCrop">🥕</span>
+                </button>
             </div>
         </header>
 
@@ -64,20 +90,51 @@
             <section class="panel reminders-panel">
                 <h2>This Week</h2>
                 <div id="remindersContent">
-                    <div class="reminder-stats">
-                        <div class="stat overdue">
-                            <span class="stat-number" id="overdueCount">0</span>
-                            <span class="stat-label">Overdue</span>
+
+                    <!-- Progress Ring -->
+                    <div class="progress-ring-container">
+                        <div class="progress-ring-wrap">
+                            <svg class="progress-ring-svg" viewBox="0 0 160 160" width="140" height="140">
+                                <defs>
+                                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#eb7c0d"/>
+                                        <stop offset="100%" stop-color="#f49325"/>
+                                    </linearGradient>
+                                    <filter id="ringGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="rgba(235,124,13,0.3)"/>
+                                    </filter>
+                                </defs>
+                                <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(252,246,182,0.06)" stroke-width="8"/>
+                                <circle id="ringProgress" cx="80" cy="80" r="68" fill="none"
+                                    stroke="url(#ringGrad)" stroke-width="8" stroke-linecap="round"
+                                    stroke-dasharray="427.26" stroke-dashoffset="427.26"
+                                    transform="rotate(-90 80 80)" filter="url(#ringGlow)"
+                                    style="transition: stroke-dashoffset 0.8s ease"/>
+                            </svg>
+                            <div class="ring-center">
+                                <svg viewBox="0 0 60 72" fill="none" xmlns="http://www.w3.org/2000/svg" width="38" height="46">
+                                    <ellipse cx="26" cy="14" rx="5" ry="10" transform="rotate(-10 26 14)" stroke="#2c5530" stroke-width="3" fill="none"/>
+                                    <ellipse cx="36" cy="12" rx="5" ry="10" transform="rotate(15 36 12)" stroke="#2c5530" stroke-width="3" fill="none"/>
+                                    <path d="M18 24 C18 24, 16 42, 28 62 C28 62, 30 66, 32 62 C44 42, 42 24, 42 24 C42 20, 18 20, 18 24Z" stroke="#eb7c0d" stroke-width="3" fill="rgba(235,124,13,0.06)" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <line x1="22" y1="34" x2="34" y2="34" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                                    <line x1="23" y1="42" x2="33" y2="42" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                                </svg>
+                            </div>
                         </div>
-                        <div class="stat due-soon">
-                            <span class="stat-number" id="dueSoonCount">0</span>
-                            <span class="stat-label">Due Soon</span>
-                        </div>
-                        <div class="stat upcoming">
-                            <span class="stat-number" id="upcomingCount">0</span>
-                            <span class="stat-label">This Week</span>
-                        </div>
+                        <div class="ring-pct" id="ringPct">0%</div>
+                        <div class="ring-label-text">completion rate</div>
                     </div>
+
+                    <!-- Status dots -->
+                    <div class="ring-stats-row">
+                        <span class="ring-stat-item"><span class="ring-dot" style="background:var(--orange-primary)"></span><span id="postedCount">0</span> posted</span>
+                        <span class="ring-stat-item"><span class="ring-dot" style="background:var(--green-bright)"></span><span id="inProgressCount">0</span> growing</span>
+                        <span class="ring-stat-item"><span class="ring-dot" style="background:var(--cream-dim)"></span><span id="ideaCount">0</span> seeds</span>
+                    </div>
+
+                    <div class="ring-divider"></div>
+                    <p class="due-soon-label">Due Soon</p>
+
                     <ul id="remindersList" class="reminders-list">
                         <li class="empty-state">No upcoming deadlines</li>
                     </ul>
@@ -90,7 +147,7 @@
             <div class="flow-header">
                 <div class="flow-step-label"><span class="step-num">1</span> Content Library</div>
                 <div class="flow-connector">›</div>
-                <div class="flow-step-label"><span class="step-num">2</span> AI Generator</div>
+                <div class="flow-step-label"><span class="step-num">2</span> Caption Generator</div>
                 <div class="flow-connector">›</div>
                 <div class="flow-step-label"><span class="step-num">3</span> Publish</div>
             </div>
@@ -100,9 +157,19 @@
                 <section class="panel library-panel">
                     <div class="panel-header">
                         <h2>Content Library</h2>
-                        <button id="addContentBtn" class="btn btn-primary"><span class="icon">+</span> Add</button>
+                        <div class="library-header-actions">
+                            <button id="importCsvBtn" class="btn btn-secondary btn-sm" title="Import from TikTok/Instagram CSV export">⬆ Import CSV</button>
+                            <button id="addContentBtn" class="btn btn-primary"><span class="icon">+</span> Add</button>
+                        </div>
                     </div>
                     <div class="library-filters">
+                        <select id="sortFilter">
+                            <option value="priority">Priority</option>
+                            <option value="due-date">Due Date</option>
+                            <option value="status">By Status</option>
+                            <option value="newest">Newest</option>
+                            <option value="performance">Performance</option>
+                        </select>
                         <select id="statusFilter">
                             <option value="all">All</option>
                             <option value="idea">Ideas</option>
@@ -122,7 +189,7 @@
 
                 <!-- 2: AI Generator -->
                 <section class="panel generator-panel">
-                    <h2>AI Generator</h2>
+                    <h2>Caption Generator <span class="ai-badge">AI-enabled</span></h2>
                     <div id="selectedContext" class="selected-context hidden">
                         <span class="context-label">Using:</span>
                         <span id="contextTitle" class="context-title"></span>
@@ -227,6 +294,22 @@
             </div>
         </section>
 
+        <!-- Garden View -->
+        <section class="panel garden-view-panel">
+            <div class="panel-header">
+                <h2>🌱 Garden View</h2>
+                <div class="garden-filters" id="gardenFilters">
+                    <button class="garden-filter active" data-filter="all">All</button>
+                    <button class="garden-filter" data-filter="idea">🌰 Seeds</button>
+                    <button class="garden-filter" data-filter="in-progress">🌱 Growing</button>
+                    <button class="garden-filter" data-filter="posted">🥕 Harvested</button>
+                </div>
+            </div>
+            <div class="garden-grid" id="gardenGrid">
+                <!-- Rendered by JS -->
+            </div>
+        </section>
+
         <!-- Add/Edit Content Modal -->
         <div id="contentModal" class="modal hidden">
             <div class="modal-content">
@@ -246,8 +329,16 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="contentHeader">Header</label>
-                            <input type="text" id="contentHeader" placeholder="Video header text">
+                            <label for="contentCategory">Content Type</label>
+                            <select id="contentCategory">
+                                <option value="">— Select type —</option>
+                                <option value="🌱 Garden">🌱 Garden</option>
+                                <option value="🏠 Lifestyle">🏠 Lifestyle</option>
+                                <option value="👗 Fashion">👗 Fashion</option>
+                                <option value="🍳 Food">🍳 Food</option>
+                                <option value="🎵 Music">🎵 Music</option>
+                                <option value="✨ Other">✨ Other</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="contentStatus">Status</label>
@@ -368,6 +459,100 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="editFromView">Edit</button>
                     <button type="button" class="btn btn-primary" id="closeViewBtn">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Calendar Modal -->
+        <div id="calendarModal" class="modal hidden">
+            <div class="modal-content cal-modal-content">
+                <div class="modal-header">
+                    <div class="cal-nav">
+                        <button class="cal-nav-btn" id="calPrevMonth">‹</button>
+                        <h3 id="calMonthTitle">February 2026</h3>
+                        <button class="cal-nav-btn" id="calNextMonth">›</button>
+                    </div>
+                    <button class="modal-close" id="closeCalModal">&times;</button>
+                </div>
+                <div class="cal-weekdays">
+                    <span>Mon</span><span>Tue</span><span>Wed</span>
+                    <span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+                <div id="calGrid" class="cal-grid"></div>
+                <div class="cal-legend">
+                    <span class="cal-legend-item"><span class="cal-dot-legend posted"></span> Posted</span>
+                    <span class="cal-legend-item"><span class="cal-dot-legend due"></span> Due / In progress</span>
+                    <span class="cal-legend-item"><span class="cal-dot-legend idea"></span> Idea</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Crop Picker Modal -->
+        <div id="cropPickerModal" class="modal hidden">
+            <div class="modal-content crop-picker-content">
+                <div class="modal-header">
+                    <h3>Pick Your Crop</h3>
+                    <button class="modal-close" id="closeCropPicker">&times;</button>
+                </div>
+                <p class="crop-picker-subtitle">Choose your avatar crop for the dashboard</p>
+                <div class="crop-grid" id="cropGrid">
+                    <button class="crop-option active" data-crop="🥕" title="Carrot">🥕</button>
+                    <button class="crop-option" data-crop="🌽" title="Corn">🌽</button>
+                    <button class="crop-option" data-crop="🍅" title="Tomato">🍅</button>
+                    <button class="crop-option" data-crop="🥦" title="Broccoli">🥦</button>
+                    <button class="crop-option" data-crop="🍆" title="Eggplant">🍆</button>
+                    <button class="crop-option" data-crop="🌶️" title="Chili">🌶️</button>
+                    <button class="crop-option" data-crop="🥬" title="Leafy greens">🥬</button>
+                    <button class="crop-option" data-crop="🌻" title="Sunflower">🌻</button>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelCropPicker">Cancel</button>
+                    <button class="btn btn-primary" id="confirmCropPicker">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CSV Import Modal -->
+        <div id="csvImportModal" class="modal hidden">
+            <div class="modal-content csv-import-content">
+                <div class="modal-header">
+                    <h3>Import CSV</h3>
+                    <button class="modal-close" id="closeCsvImport">&times;</button>
+                </div>
+
+                <!-- Step 1: Upload -->
+                <div id="csvStep1">
+                    <p class="csv-help-text">Export your analytics from <strong>TikTok Creator Portal</strong> or <strong>Meta Business Suite</strong> and upload the CSV here. Seedboard auto-detects the format.</p>
+                    <div class="csv-drop-zone" id="csvDropZone">
+                        <div class="csv-drop-icon">📂</div>
+                        <p>Drag & drop your CSV file here</p>
+                        <p class="csv-drop-sub">or</p>
+                        <label class="btn btn-secondary" for="csvFileInput">Choose File</label>
+                        <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" style="display:none">
+                    </div>
+                    <div class="csv-template-row">
+                        <span class="csv-template-label">Don't have an export yet?</span>
+                        <button class="btn-link" id="downloadTemplateBtn">Download Seedboard template CSV</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Preview & Confirm -->
+                <div id="csvStep2" class="hidden">
+                    <div class="csv-detected-banner" id="csvDetectedBanner"></div>
+                    <div class="csv-mapping-section">
+                        <h4>Column Mapping</h4>
+                        <div class="csv-mapping-grid" id="csvMappingGrid"></div>
+                    </div>
+                    <div class="csv-preview-section">
+                        <h4>Preview <span id="csvPreviewCount"></span></h4>
+                        <div class="csv-preview-table-wrap">
+                            <table class="csv-preview-table" id="csvPreviewTable"></table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="csvBack">← Back</button>
+                        <button class="btn btn-primary" id="csvConfirmImport">Import <span id="csvImportCount"></span> rows</button>
+                    </div>
                 </div>
             </div>
         </div>

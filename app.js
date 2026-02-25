@@ -8,17 +8,22 @@ const App = {
     currentEditId: null,
     isConnected: true,
     selectedLibraryId: null,
+    calYear: new Date().getFullYear(),
+    calMonth: new Date().getMonth(),
 
     /**
      * Initialize the application
      */
     async init() {
         this.bindEvents();
+        this.bindGardenFilters();
+        this.restoreCrop();
         await this.loadContent();
         Carousel.init(this.content);
         this.updateConnectionStatus(true);
         this.renderContent();
         this.updateReminders();
+        this.renderGarden();
         await this.loadAccounts();
         await this.loadAnalytics();
     },
@@ -75,9 +80,66 @@ const App = {
         document.getElementById('copyPublishCaption').addEventListener('click', () => this.copyPublishText('publishCaption'));
         document.getElementById('copyPublishHashtags').addEventListener('click', () => this.copyPublishText('publishHashtags'));
 
-        // Filters
+        // Filters + sort
+        document.getElementById('sortFilter').addEventListener('change', () => this.renderContent());
         document.getElementById('statusFilter').addEventListener('change', () => this.renderContent());
         document.getElementById('searchFilter').addEventListener('input', () => this.renderContent());
+
+        // CSV Import modal
+        document.getElementById('importCsvBtn').addEventListener('click', () => this.openCsvImport());
+        document.getElementById('closeCsvImport').addEventListener('click', () => this.closeCsvImport());
+        document.getElementById('csvImportModal').addEventListener('click', (e) => {
+            if (e.target.id === 'csvImportModal') this.closeCsvImport();
+        });
+        document.getElementById('csvBack').addEventListener('click', () => this.csvShowStep(1));
+        document.getElementById('csvConfirmImport').addEventListener('click', () => this.csvDoImport());
+        document.getElementById('downloadTemplateBtn').addEventListener('click', () => this.csvDownloadTemplate());
+
+        const dropZone = document.getElementById('csvDropZone');
+        const fileInput = document.getElementById('csvFileInput');
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) this.csvReadFile(e.target.files[0]);
+        });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files[0]) this.csvReadFile(e.dataTransfer.files[0]);
+        });
+
+        // Crop Picker modal
+        document.getElementById('cropPickerBtn').addEventListener('click', () => this.openCropPicker());
+        document.getElementById('closeCropPicker').addEventListener('click', () => this.closeCropPicker());
+        document.getElementById('cancelCropPicker').addEventListener('click', () => this.closeCropPicker());
+        document.getElementById('confirmCropPicker').addEventListener('click', () => this.confirmCrop());
+        document.getElementById('cropPickerModal').addEventListener('click', (e) => {
+            if (e.target.id === 'cropPickerModal') this.closeCropPicker();
+        });
+        document.getElementById('cropGrid').addEventListener('click', (e) => {
+            const btn = e.target.closest('.crop-option');
+            if (!btn) return;
+            document.querySelectorAll('.crop-option').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+
+        // Calendar modal
+        document.getElementById('calendarBtn').addEventListener('click', () => this.openCalendarModal());
+        document.getElementById('closeCalModal').addEventListener('click', () => this.closeCalendarModal());
+        document.getElementById('calPrevMonth').addEventListener('click', () => {
+            this.calYear = this.calMonth === 0 ? this.calYear - 1 : this.calYear;
+            this.calMonth = this.calMonth === 0 ? 11 : this.calMonth - 1;
+            this.renderCalendar();
+        });
+        document.getElementById('calNextMonth').addEventListener('click', () => {
+            this.calYear = this.calMonth === 11 ? this.calYear + 1 : this.calYear;
+            this.calMonth = this.calMonth === 11 ? 0 : this.calMonth + 1;
+            this.renderCalendar();
+        });
+        document.getElementById('calendarModal').addEventListener('click', (e) => {
+            if (e.target.id === 'calendarModal') this.closeCalendarModal();
+        });
 
         // Show stats section when status is "posted"
         document.getElementById('contentStatus').addEventListener('change', (e) => {
@@ -142,6 +204,7 @@ const App = {
         document.getElementById('contentHashtags').value = item.hashtags;
         document.getElementById('contentStatus').value = item.status;
         document.getElementById('contentDueDate').value = item.dueDate;
+        document.getElementById('contentCategory').value = item.category || '';
         document.getElementById('contentTiktokUrl').value = item.tiktokUrl || '';
         document.getElementById('contentViews').value = item.views || '';
         document.getElementById('contentLikes').value = item.likes || '';
@@ -237,6 +300,7 @@ const App = {
             header: document.getElementById('contentHeader').value,
             caption: document.getElementById('contentCaption').value,
             hashtags: document.getElementById('contentHashtags').value,
+            category: document.getElementById('contentCategory').value,
             status: document.getElementById('contentStatus').value,
             dueDate: document.getElementById('contentDueDate').value,
             tiktokUrl: document.getElementById('contentTiktokUrl').value,
@@ -279,6 +343,7 @@ const App = {
             this.closeModal();
             this.renderContent();
             this.updateReminders();
+            this.renderGarden();
             Carousel.refresh(this.content);
         } catch (error) {
             this.hideLoading();
@@ -301,6 +366,7 @@ const App = {
             this.hideLoading();
             this.renderContent();
             this.updateReminders();
+            this.renderGarden();
             Carousel.refresh(this.content);
             this.showToast('Content deleted', 'success');
         } catch (error) {
@@ -388,6 +454,8 @@ const App = {
         const statusFilter = document.getElementById('statusFilter').value;
         const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
 
+        const sortMode = document.getElementById('sortFilter').value;
+
         let filtered = this.content;
 
         if (statusFilter !== 'all') {
@@ -400,11 +468,42 @@ const App = {
             );
         }
 
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const statusOrder = { 'idea': 0, 'in-progress': 1, 'filmed': 2, 'edited': 3, 'posted': 4 };
+
         filtered.sort((a, b) => {
+            if (sortMode === 'due-date') {
+                if (a.dueDate && b.dueDate) return new Date(b.dueDate) - new Date(a.dueDate);
+                if (a.dueDate) return 1;
+                if (b.dueDate) return -1;
+                return 0;
+            }
+            if (sortMode === 'status') {
+                return (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+            }
+            if (sortMode === 'newest') {
+                return new Date(b.createdDate) - new Date(a.createdDate);
+            }
+            if (sortMode === 'performance') {
+                const engA = a.views > 0 ? ((a.likes || 0) + (a.comments || 0) + (a.shares || 0)) / a.views : -1;
+                const engB = b.views > 0 ? ((b.likes || 0) + (b.comments || 0) + (b.shares || 0)) / b.views : -1;
+                return engB - engA;
+            }
+            // Default: priority — overdue → due soon → upcoming → no date → posted
+            const urgency = (item) => {
+                if (item.status === 'posted') return 5;
+                if (!item.dueDate) return 4;
+                const d = new Date(item.dueDate); d.setHours(0, 0, 0, 0);
+                const diff = (d - now) / 86400000;
+                if (diff < 0) return 0;   // overdue
+                if (diff <= 2) return 1;  // due very soon
+                if (diff <= 7) return 2;  // this week
+                return 3;                  // future
+            };
+            const ua = urgency(a), ub = urgency(b);
+            if (ua !== ub) return ua - ub;
             if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
-            if (a.dueDate) return -1;
-            if (b.dueDate) return 1;
-            return new Date(b.createdDate) - new Date(a.createdDate);
+            return 0;
         });
 
         if (filtered.length === 0) {
@@ -416,11 +515,12 @@ const App = {
             <div class="library-card ${this.selectedLibraryId === item.id ? 'selected' : ''}"
                  data-id="${item.id}"
                  onclick="App.selectLibraryItem('${item.id}')">
-                <span class="library-card-status ${item.status}"></span>
+                <span class="growth-icon">${{'idea':'🌰','in-progress':'🌱','filmed':'🌿','edited':'🌿','posted':'🥕'}[item.status] || '🌰'}</span>
                 <div class="library-card-info">
                     <div class="library-card-title">${this.escapeHtml(item.title)}</div>
                     <div class="library-card-meta">
                         <span class="status-badge ${item.status}">${item.status.replace('-', ' ')}</span>
+                        ${item.category ? `<span class="library-card-type">${item.category}</span>` : ''}
                         ${item.dueDate ? `<span class="library-card-due">${this.formatDate(item.dueDate)}</span>` : ''}
                     </div>
                 </div>
@@ -499,62 +599,72 @@ const App = {
     },
 
     /**
-     * Update reminders panel
+     * Update reminders panel (Phase 5: progress ring + due-soon list)
      */
     updateReminders() {
+        const total = this.content.length;
+        const posted = this.content.filter(c => c.status === 'posted');
+        const inProgress = this.content.filter(c =>
+            c.status === 'in-progress' || c.status === 'filmed' || c.status === 'edited'
+        );
+        const ideas = this.content.filter(c => c.status === 'idea');
+
+        // ── Progress ring ──────────────────────────────────────────────
+        const completionRate = total > 0 ? posted.length / total : 0;
+        const circumference = 427.26;
+        const offset = circumference * (1 - completionRate);
+
+        const ring = document.getElementById('ringProgress');
+        if (ring) {
+            ring.style.strokeDashoffset = offset;
+        }
+
+        const pctEl = document.getElementById('ringPct');
+        if (pctEl) pctEl.textContent = Math.round(completionRate * 100) + '%';
+
+        // ── Dot counters ───────────────────────────────────────────────
+        const postedEl = document.getElementById('postedCount');
+        const inProgEl = document.getElementById('inProgressCount');
+        const ideaEl   = document.getElementById('ideaCount');
+        if (postedEl) postedEl.textContent = posted.length;
+        if (inProgEl) inProgEl.textContent = inProgress.length;
+        if (ideaEl)   ideaEl.textContent   = ideas.length;
+
+        // ── Due-soon list ──────────────────────────────────────────────
         const now = new Date();
         now.setHours(0, 0, 0, 0);
-
         const oneWeekFromNow = new Date(now);
         oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
-
         const threeDaysFromNow = new Date(now);
         threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
 
-        // Filter content that's not posted and has due dates
-        const pending = this.content.filter(c =>
-            c.status !== 'posted' && c.dueDate
-        );
-
+        const pending = this.content.filter(c => c.status !== 'posted' && c.dueDate);
         const overdue = [];
         const dueSoon = [];
         const upcoming = [];
 
         pending.forEach(item => {
-            const dueDate = new Date(item.dueDate);
-            dueDate.setHours(0, 0, 0, 0);
-
-            if (dueDate < now) {
-                overdue.push(item);
-            } else if (dueDate <= threeDaysFromNow) {
-                dueSoon.push(item);
-            } else if (dueDate <= oneWeekFromNow) {
-                upcoming.push(item);
-            }
+            const d = new Date(item.dueDate);
+            d.setHours(0, 0, 0, 0);
+            if (d < now)                    overdue.push({ ...item, urgency: 'overdue' });
+            else if (d <= threeDaysFromNow) dueSoon.push({ ...item, urgency: 'due-soon' });
+            else if (d <= oneWeekFromNow)   upcoming.push({ ...item, urgency: 'upcoming' });
         });
 
-        // Update counts
-        document.getElementById('overdueCount').textContent = overdue.length;
-        document.getElementById('dueSoonCount').textContent = dueSoon.length;
-        document.getElementById('upcomingCount').textContent = upcoming.length;
-
-        // Update list
+        const allItems = [...overdue, ...dueSoon, ...upcoming];
         const list = document.getElementById('remindersList');
-        const allItems = [
-            ...overdue.map(i => ({ ...i, urgency: 'overdue' })),
-            ...dueSoon.map(i => ({ ...i, urgency: 'due-soon' })),
-            ...upcoming.map(i => ({ ...i, urgency: 'upcoming' })),
-        ];
+        if (!list) return;
 
         if (allItems.length === 0) {
-            list.innerHTML = `<li class="empty-state">No upcoming deadlines this week!</li>`;
+            list.innerHTML = `<li class="empty-state">All clear — no deadlines this week!</li>`;
             return;
         }
 
+        const stageIcon = { idea: '🌰', 'in-progress': '🌱', filmed: '🌿', edited: '🌿', posted: '🥕' };
         list.innerHTML = allItems.map(item => `
             <li class="${item.urgency}" onclick="App.openViewModal('${item.id}')">
                 <div class="reminder-title">${this.escapeHtml(item.title)}</div>
-                <div class="reminder-date">${this.formatDate(item.dueDate)} - ${item.status.replace('-', ' ')}</div>
+                <div class="reminder-date">${stageIcon[item.status] || '🌰'} ${this.formatDate(item.dueDate)} · ${item.status.replace('-', ' ')}</div>
             </li>
         `).join('');
     },
@@ -754,6 +864,331 @@ const App = {
         }
     },
 
+    /**
+     * Open the monthly calendar modal
+     */
+    openCalendarModal() {
+        this.renderCalendar();
+        document.getElementById('calendarModal').classList.remove('hidden');
+    },
+
+    closeCalendarModal() {
+        document.getElementById('calendarModal').classList.add('hidden');
+    },
+
+    renderCalendar() {
+        const y = this.calYear, m = this.calMonth;
+        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        document.getElementById('calMonthTitle').textContent = `${monthNames[m]} ${y}`;
+
+        const today = new Date(); today.setHours(0,0,0,0);
+        const firstDow = new Date(y, m, 1).getDay(); // 0=Sun
+        const startOffset = firstDow === 0 ? 6 : firstDow - 1; // shift to Mon-start
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        const prevMonthDays = new Date(y, m, 0).getDate();
+
+        const cells = [];
+        for (let i = startOffset - 1; i >= 0; i--) {
+            cells.push({ day: prevMonthDays - i, current: false });
+        }
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${y}-${String(m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const items = this.content.filter(c => c.dueDate === dateStr);
+            const isToday = new Date(y, m, d).getTime() === today.getTime();
+            cells.push({ day: d, current: true, dateStr, items, isToday });
+        }
+        const remaining = (7 - (cells.length % 7)) % 7;
+        for (let d = 1; d <= remaining; d++) {
+            cells.push({ day: d, current: false });
+        }
+
+        const grid = document.getElementById('calGrid');
+        grid.innerHTML = cells.map(cell => {
+            if (!cell.current) {
+                return `<div class="cal-cell other-month"><span class="cal-cell-num">${cell.day}</span></div>`;
+            }
+            const hasContent = cell.items && cell.items.length > 0;
+            const todayClass = cell.isToday ? ' today' : '';
+            const hasClass = hasContent ? ' has-content' : '';
+            const itemsHTML = (cell.items || []).map(item =>
+                `<div class="cal-item ${item.status}" onclick="App.openViewModal('${item.id}');App.closeCalendarModal();" title="${this.escapeHtml(item.title)}">
+                    ${this.escapeHtml(item.title.length > 14 ? item.title.slice(0, 14) + '…' : item.title)}
+                </div>`
+            ).join('');
+            return `<div class="cal-cell${todayClass}${hasClass}">
+                <span class="cal-cell-num">${cell.day}</span>
+                ${itemsHTML}
+            </div>`;
+        }).join('');
+    },
+
+    /**
+     * Phase 6: Render the Garden View
+     */
+    renderGarden(filter = 'all') {
+        const grid = document.getElementById('gardenGrid');
+        if (!grid) return;
+
+        const stageClass = {
+            idea: 'seed',
+            'in-progress': 'sprout',
+            filmed: 'plant',
+            edited: 'plant',
+            posted: 'harvest',
+        };
+
+        const filtered = filter === 'all'
+            ? this.content
+            : this.content.filter(c => {
+                if (filter === 'in-progress') {
+                    return ['in-progress', 'filmed', 'edited'].includes(c.status);
+                }
+                return c.status === filter;
+            });
+
+        const cards = filtered.map(item => {
+            const art = stageClass[item.status] || 'seed';
+            return `
+                <div class="plant-card ${item.status}" onclick="App.openViewModal('${item.id}')">
+                    <div class="plant-art ${art}"></div>
+                    <div class="plant-card-title">${this.escapeHtml(item.title)}</div>
+                    <div class="plant-card-status">${item.status.replace('-', ' ')}</div>
+                </div>`;
+        }).join('');
+
+        const addCard = `
+            <button class="plant-add-card" onclick="App.openAddModal()">
+                <span class="plant-add-icon">🌱</span>
+                Plant a seed
+            </button>`;
+
+        grid.innerHTML = filtered.length === 0
+            ? `<p class="garden-empty">No plants here yet — try a different filter.</p>${addCard}`
+            : cards + addCard;
+    },
+
+    /**
+     * Phase 7: Crop Picker
+     */
+    openCropPicker() {
+        const saved = localStorage.getItem('seedboard-crop') || '🥕';
+        document.querySelectorAll('.crop-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.crop === saved);
+        });
+        document.getElementById('cropPickerModal').classList.remove('hidden');
+    },
+
+    closeCropPicker() {
+        document.getElementById('cropPickerModal').classList.add('hidden');
+    },
+
+    confirmCrop() {
+        const active = document.querySelector('.crop-option.active');
+        if (!active) return;
+        const crop = active.dataset.crop;
+        localStorage.setItem('seedboard-crop', crop);
+        document.getElementById('avatarCrop').textContent = crop;
+        this.closeCropPicker();
+        this.showToast('Crop updated!', 'success');
+    },
+
+    restoreCrop() {
+        const saved = localStorage.getItem('seedboard-crop');
+        if (saved) document.getElementById('avatarCrop').textContent = saved;
+    },
+
+    // ─────────────────────────────────────────────────────────────────
+    // CSV IMPORT
+    // ─────────────────────────────────────────────────────────────────
+
+    _csvParsed: [],   // holds parsed rows between steps
+
+    openCsvImport() {
+        this.csvShowStep(1);
+        document.getElementById('csvFileInput').value = '';
+        document.getElementById('csvImportModal').classList.remove('hidden');
+    },
+
+    closeCsvImport() {
+        document.getElementById('csvImportModal').classList.add('hidden');
+    },
+
+    csvShowStep(n) {
+        document.getElementById('csvStep1').classList.toggle('hidden', n !== 1);
+        document.getElementById('csvStep2').classList.toggle('hidden', n !== 2);
+    },
+
+    /** Parse CSV text into array of objects keyed by header row */
+    csvParse(text) {
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) return [];
+
+        const parseLine = (line) => {
+            const fields = [];
+            let cur = '', inQ = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') { inQ = !inQ; continue; }
+                if (ch === ',' && !inQ) { fields.push(cur.trim()); cur = ''; continue; }
+                cur += ch;
+            }
+            fields.push(cur.trim());
+            return fields;
+        };
+
+        const headers = parseLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+        return lines.slice(1)
+            .filter(l => l.trim())
+            .map(line => {
+                const vals = parseLine(line);
+                const obj = {};
+                headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, '').trim(); });
+                return obj;
+            });
+    },
+
+    /** Map raw CSV column names to Seedboard field names */
+    csvDetectMapping(headers) {
+        // Each field: [ seedboardKey, label, [...aliases] ]
+        const schema = [
+            ['title',       'Title',     ['video title','title','post title','description','post caption','caption','content title']],
+            ['views',       'Views',     ['video views','views','view count','impressions','reach','plays']],
+            ['likes',       'Likes',     ['likes','like count','reactions']],
+            ['comments',    'Comments',  ['comments','comment count','comments count']],
+            ['shares',      'Shares',    ['shares','share count','reposts']],
+            ['dueDate',     'Date',      ['create time','video create time','upload date','date','publish date','post date','timestamp','published at']],
+            ['tiktokUrl',   'TikTok URL',['share url','video link','link','url','tiktok url','video url']],
+            ['instagramUrl','IG URL',    ['post link','permalink','instagram url','ig url','post url']],
+            ['hashtags',    'Hashtags',  ['hashtags','tags','hash tags']],
+            ['category',    'Category',  ['category','content type','type']],
+        ];
+
+        const lc = headers.map(h => h.toLowerCase());
+        const mapping = {};
+        schema.forEach(([key, label, aliases]) => {
+            const match = aliases.find(alias => lc.includes(alias));
+            mapping[key] = { label, csvCol: match ? headers[lc.indexOf(match)] : null };
+        });
+        return mapping;
+    },
+
+    /** Detect the likely source platform from column names */
+    csvDetectPlatform(headers) {
+        const joined = headers.join(' ').toLowerCase();
+        if (joined.includes('video title') || joined.includes('share url') || joined.includes('video views')) return 'TikTok';
+        if (joined.includes('permalink') || joined.includes('post caption') || joined.includes('impressions')) return 'Instagram';
+        if (joined.includes('title') && joined.includes('views')) return 'Seedboard template';
+        return 'Custom';
+    },
+
+    csvReadFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const rows = this.csvParse(e.target.result);
+            if (rows.length === 0) {
+                this.showToast('No data rows found in file', 'error');
+                return;
+            }
+            const headers = Object.keys(rows[0]);
+            const mapping = this.csvDetectMapping(headers);
+            const platform = this.csvDetectPlatform(headers);
+
+            // Convert rows using the mapping
+            this._csvParsed = rows.map(row => {
+                const item = {};
+                Object.entries(mapping).forEach(([key, { csvCol }]) => {
+                    if (!csvCol) return;
+                    const raw = row[csvCol] || '';
+                    if (['views','likes','comments','shares'].includes(key)) {
+                        item[key] = parseInt(raw.replace(/,/g, ''), 10) || 0;
+                    } else if (key === 'dueDate') {
+                        // Try to normalise to YYYY-MM-DD
+                        const d = new Date(raw);
+                        item[key] = isNaN(d) ? raw : d.toISOString().split('T')[0];
+                    } else {
+                        item[key] = raw;
+                    }
+                });
+                return item;
+            }).filter(item => item.title || item.views);
+
+            // Build UI for step 2
+            const banner = document.getElementById('csvDetectedBanner');
+            banner.textContent = `✅  ${platform} export detected — ${this._csvParsed.length} rows ready to import`;
+
+            // Mapping grid
+            const grid = document.getElementById('csvMappingGrid');
+            grid.innerHTML = Object.entries(mapping).map(([key, { label, csvCol }]) => `
+                <div class="csv-map-row${csvCol ? '' : ' unmapped'}">
+                    <span class="csv-map-field">${label}</span>
+                    <span class="csv-map-arrow">←</span>
+                    <span class="csv-map-col">${csvCol || 'not found'}</span>
+                </div>`).join('');
+
+            // Preview table (first 5 rows)
+            const previewFields = ['title','views','likes','comments','shares','dueDate'];
+            const preview = this._csvParsed.slice(0, 5);
+            document.getElementById('csvPreviewCount').textContent = `(showing ${preview.length} of ${this._csvParsed.length})`;
+            document.getElementById('csvImportCount').textContent = this._csvParsed.length;
+            const table = document.getElementById('csvPreviewTable');
+            table.innerHTML = `
+                <thead><tr>${previewFields.map(f => `<th>${f}</th>`).join('')}</tr></thead>
+                <tbody>${preview.map(row => `<tr>${previewFields.map(f =>
+                    `<td title="${this.escapeHtml(String(row[f]||''))}">${this.escapeHtml(String(row[f]||'—').slice(0,30))}</td>`
+                ).join('')}</tr>`).join('')}</tbody>`;
+
+            this.csvShowStep(2);
+        };
+        reader.readAsText(file);
+    },
+
+    async csvDoImport() {
+        if (!this._csvParsed.length) return;
+        this.showLoading(`Importing ${this._csvParsed.length} items…`);
+        try {
+            const res = await fetch('/api/content/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this._csvParsed),
+            });
+            const result = await res.json();
+            this.hideLoading();
+            this.closeCsvImport();
+            await this.loadContent();
+            this.renderContent();
+            this.updateReminders();
+            this.renderGarden();
+            Carousel.refresh(this.content);
+            this.showToast(`Import complete — ${result.created} added, ${result.updated} updated`, 'success');
+        } catch (err) {
+            this.hideLoading();
+            this.showToast('Import failed: ' + err.message, 'error');
+        }
+    },
+
+    csvDownloadTemplate() {
+        const headers = 'title,status,dueDate,views,likes,comments,shares,category,tiktokUrl,instagramUrl,hashtags,summary';
+        const example = '"My first garden reel",posted,2026-02-15,12000,850,42,30,"🌱 Garden","https://tiktok.com/...","","#gardening #homegrown","Time lapse of my raised beds"';
+        const blob = new Blob([headers + '\n' + example], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'seedboard-template.csv';
+        a.click();
+    },
+
+    /**
+     * Phase 6: bind garden filter buttons
+     */
+    bindGardenFilters() {
+        document.getElementById('gardenFilters')?.addEventListener('click', e => {
+            const btn = e.target.closest('.garden-filter');
+            if (!btn) return;
+            document.querySelectorAll('.garden-filter').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            this.renderGarden(btn.dataset.filter);
+        });
+    },
+
     renderInsights(text) {
         const box = document.getElementById('aiInsightsBox');
         const content = document.getElementById('insightsContent');
@@ -788,7 +1223,7 @@ document.addEventListener('DOMContentLoaded', () => App.init());
    ============================ */
 const Carousel = {
     current: 0,
-    total: 6,
+    total: 3,
     autoTimer: null,
 
     init(content) {
@@ -894,233 +1329,227 @@ const Carousel = {
         const posted = content.filter(c => c.status === 'posted');
         return [
             this.buildCalendarCard(content),
-            this.buildReachCard(posted),
-            this.buildTypeCard(posted),
-            this.buildEngagementCard(posted),
-            this.buildStarCard(posted),
+            this.buildMonthlyPerformanceCard(posted, content),
             this.buildPipelineCard(content),
         ];
     },
 
+    // ── Card 1: Full-month content calendar ─────────────────────────
     buildCalendarCard(content) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const dow = today.getDay();
-        const monday = new Date(today);
-        monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
-        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const monthName = ['January','February','March','April','May','June','July','August','September','October','November','December'][month];
+        const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDow = new Date(year, month, 1).getDay();
+        const startOffset = firstDow === 0 ? 6 : firstDow - 1; // Mon = 0
+        const todayDay = now.getDate();
 
-        const days = dayNames.map((name, i) => {
-            const d = new Date(monday);
-            d.setDate(monday.getDate() + i);
-            const dateStr = d.toISOString().split('T')[0];
-            const items = content.filter(c => c.dueDate === dateStr);
-            const isToday = d.getTime() === today.getTime();
-            const hasPosted = items.some(c => c.status === 'posted');
-            const hasDue = items.some(c => c.status !== 'posted');
-            return { name, day: d.getDate(), isToday, hasPosted, hasDue, count: items.length };
+        // Index content by dueDate
+        const byDate = {};
+        content.forEach(item => {
+            if (!item.dueDate) return;
+            const d = item.dueDate.split('T')[0];
+            if (!byDate[d]) byDate[d] = [];
+            byDate[d].push(item);
         });
 
-        const scheduled = days.filter(d => d.count > 0).length;
-        const nextDue = days.find(d => d.hasDue);
-        const insight = nextDue
-            ? `Next deadline: ${nextDue.name} · ${scheduled} item${scheduled !== 1 ? 's' : ''} this week`
-            : scheduled > 0
-                ? `${scheduled} posts scheduled this week — on track!`
-                : 'No deadlines this week — plan your next drop';
+        // Empty offset cells
+        let cells = Array(startOffset).fill('<div class="mini-cal-cell empty"></div>').join('');
 
-        const dayHTML = days.map(d => `<div class="cal-day${d.isToday ? ' today' : ''}${d.hasPosted ? ' posted' : ''}${d.hasDue && !d.hasPosted ? ' due' : ''}">
-                <span class="cal-name">${d.name}</span>
-                <span class="cal-num">${d.day}</span>
-                <span class="cal-dot"></span>
-            </div>`).join('');
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${monthPrefix}-${String(d).padStart(2, '0')}`;
+            const items = byDate[dateStr] || [];
+            const isToday = d === todayDay;
+            let dotClass = '';
+            if (items.length > 0) {
+                if      (items.some(i => i.status === 'posted'))                     dotClass = 'dot-posted';
+                else if (items.some(i => ['filmed','edited'].includes(i.status)))    dotClass = 'dot-plant';
+                else if (items.some(i => i.status === 'in-progress'))               dotClass = 'dot-sprout';
+                else                                                                  dotClass = 'dot-seed';
+            }
+            cells += `<div class="mini-cal-cell${isToday ? ' today' : ''}">
+                <span class="mini-cal-num">${d}</span>
+                ${dotClass ? `<span class="mini-cal-dot ${dotClass}"></span>` : ''}
+            </div>`;
+        }
+
+        const totalPlanned = Object.keys(byDate).filter(d => d.startsWith(monthPrefix)).length;
+        const postedThis   = content.filter(c => c.status === 'posted' && c.dueDate && c.dueDate.startsWith(monthPrefix)).length;
+        const insight = totalPlanned > 0
+            ? `${postedThis} posted · ${totalPlanned - postedThis} in progress this month`
+            : 'No content planned yet — add due dates to see your calendar fill up';
 
         return `<div class="carousel-card card-calendar">
-            <div class="card-top"><span class="card-emoji">📅</span><span class="card-label">CONTENT CALENDAR</span></div>
-            <div class="calendar-week">${dayHTML}</div>
-            <div class="card-insight">${insight}</div>
-        </div>`;
-    },
-
-    buildReachCard(posted) {
-        const totalViews = posted.reduce((s, c) => s + (c.views || 0), 0);
-        const totalLikes = posted.reduce((s, c) => s + (c.likes || 0), 0);
-        const likeRate = totalViews > 0 ? ((totalLikes / totalViews) * 100).toFixed(1) : '0.0';
-        const best = [...posted].sort((a, b) => (b.views || 0) - (a.views || 0))[0];
-        const insight = best && best.views > 0
-            ? `Top reach: "${best.title}" — ${this.fmt(best.views)} views`
-            : 'Post content and sync metrics to start tracking reach';
-
-        return `<div class="carousel-card card-reach">
-            <div class="card-top"><span class="card-emoji">👁️</span><span class="card-label">TOTAL REACH</span></div>
-            <div class="card-big-stat">${this.fmt(totalViews)}</div>
-            <div class="card-sub-stats">
-                <div class="sub-stat"><strong>${this.fmt(totalLikes)}</strong><span>likes</span></div>
-                <div class="sub-stat-divider"></div>
-                <div class="sub-stat"><strong>${likeRate}%</strong><span>like rate</span></div>
-                <div class="sub-stat-divider"></div>
-                <div class="sub-stat"><strong>${posted.length}</strong><span>posts</span></div>
+            <div class="card-top">
+                <span class="card-emoji">📅</span>
+                <span class="card-label">CONTENT CALENDAR</span>
+                <span class="card-month-label">${monthName} ${year}</span>
+            </div>
+            <div class="mini-cal-header"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+            <div class="mini-cal-grid">${cells}</div>
+            <div class="mini-cal-legend">
+                <span class="mini-legend-item"><span class="mini-legend-dot dot-posted"></span>posted</span>
+                <span class="mini-legend-item"><span class="mini-legend-dot dot-plant"></span>filmed/edited</span>
+                <span class="mini-legend-item"><span class="mini-legend-dot dot-sprout"></span>growing</span>
+                <span class="mini-legend-item"><span class="mini-legend-dot dot-seed"></span>idea</span>
             </div>
             <div class="card-insight">💡 ${insight}</div>
         </div>`;
     },
 
-    buildTypeCard(posted) {
-        const categoryMap = {
-            '🌱 Garden': ['garden', 'plant', 'grow', 'flower', 'soil', 'homegrown', 'outdoor', 'nature', 'bloom', 'harvest', 'compost'],
-            '🏠 Lifestyle': ['lifestyle', 'cozy', 'home', 'living', 'life', 'daily', 'routine', 'morning', 'aesthetic', 'vibe'],
-            '👗 Fashion': ['fashion', 'outfit', 'style', 'wear', 'clothes', 'ootd', 'fit', 'look', 'thrift'],
-            '🍳 Food': ['food', 'recipe', 'cook', 'eat', 'drink', 'meal', 'bake', 'coffee', 'kitchen', 'snack'],
-            '🎵 Music': ['music', 'song', 'vibe', 'playlist', 'beats', 'sound', 'listen'],
-        };
+    // ── Card 2: Monthly Performance (reach + top type + engagement) ──
+    buildMonthlyPerformanceCard(posted, content) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const monthName = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month];
 
+        const thisMonth = posted.filter(c => c.dueDate && c.dueDate.startsWith(monthPrefix));
+        const postedData = thisMonth.length > 0 ? thisMonth : posted;
+        const label = thisMonth.length > 0 ? `${monthName} ${year}` : 'All Time';
+
+        // Reach
+        const totalViews = postedData.reduce((s, c) => s + (c.views || 0), 0);
+        const totalLikes = postedData.reduce((s, c) => s + (c.likes || 0), 0);
+        const likeRate   = totalViews > 0 ? ((totalLikes / totalViews) * 100).toFixed(1) : '0.0';
+
+        // Top content type
+        const categoryMap = {
+            '🌱 Garden':    ['garden','plant','grow','flower','soil','homegrown','outdoor','nature','bloom','harvest','compost'],
+            '🏠 Lifestyle': ['lifestyle','cozy','home','living','life','daily','routine','morning','aesthetic','vibe'],
+            '👗 Fashion':   ['fashion','outfit','style','wear','clothes','ootd','fit','look','thrift'],
+            '🍳 Food':      ['food','recipe','cook','eat','drink','meal','bake','coffee','kitchen','snack'],
+            '🎵 Music':     ['music','song','vibe','playlist','beats','sound','listen'],
+        };
         const scores = {};
-        Object.keys(categoryMap).forEach(cat => { scores[cat] = { views: 0, count: 0 }; });
-        posted.forEach(item => {
-            const text = `${item.hashtags || ''} ${item.title || ''} ${item.summary || ''}`.toLowerCase();
-            for (const [cat, kws] of Object.entries(categoryMap)) {
-                if (kws.some(kw => text.includes(kw))) {
-                    scores[cat].views += item.views || 0;
-                    scores[cat].count++;
-                    break;
+        postedData.forEach(item => {
+            let cat = item.category || '';
+            if (!cat) {
+                const text = `${item.hashtags||''} ${item.title||''} ${item.summary||''}`.toLowerCase();
+                for (const [c, kws] of Object.entries(categoryMap)) {
+                    if (kws.some(kw => text.includes(kw))) { cat = c; break; }
                 }
             }
+            if (!cat) cat = '✨ Other';
+            if (!scores[cat]) scores[cat] = { views: 0, count: 0 };
+            scores[cat].views += item.views || 0;
+            scores[cat].count++;
         });
-
         const ranked = Object.entries(scores)
-            .filter(([, s]) => s.count > 0)
-            .map(([cat, s]) => ({ cat, avg: Math.round(s.views / s.count), count: s.count }))
+            .map(([cat, s]) => ({ cat, avg: s.count > 0 ? Math.round(s.views / s.count) : 0, count: s.count }))
             .sort((a, b) => b.avg - a.avg);
+        const topType = ranked[0];
 
-        if (ranked.length === 0) {
-            return `<div class="carousel-card card-types">
-                <div class="card-top"><span class="card-emoji">🏆</span><span class="card-label">CONTENT TYPE RANKING</span></div>
-                <div class="empty-card-msg">Post content and sync metrics to see which types perform best</div>
-            </div>`;
+        // Engagement grade
+        const withViews = postedData.filter(c => c.views > 0);
+        let gradeVal = '—', gradeColor = 'var(--text-dim)', engRate = '—';
+        if (withViews.length > 0) {
+            const rates = withViews.map(c => (((c.likes||0)+(c.comments||0)+(c.shares||0))/c.views)*100);
+            const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
+            engRate = avg.toFixed(1) + '%';
+            const grades = [
+                { grade: 'A+', min: 8, color: '#7cb342' },
+                { grade: 'A',  min: 5, color: '#7cb342' },
+                { grade: 'B',  min: 3, color: '#f49325' },
+                { grade: 'C',  min: 1, color: '#eb7c0d' },
+                { grade: 'D',  min: 0, color: '#e74c3c' },
+            ];
+            const g = grades.find(x => avg >= x.min) || grades[grades.length - 1];
+            gradeVal = g.grade; gradeColor = g.color;
         }
 
-        const maxAvg = ranked[0].avg || 1;
-        const barsHTML = ranked.slice(0, 4).map(({ cat, avg }) => `<div class="type-row">
-                <span class="type-name">${cat}</span>
-                <div class="type-bar-track"><div class="type-bar-fill" style="width:${Math.max(8, Math.round((avg / maxAvg) * 100))}%"></div></div>
-                <span class="type-avg">${this.fmt(avg)} avg</span>
-            </div>`).join('');
+        const typeHTML = topType
+            ? `<div class="perf-type-name">${topType.cat}</div><div class="perf-type-note">${topType.count} post${topType.count!==1?'s':''} · ${this.fmt(topType.avg)} avg</div>`
+            : `<div class="perf-type-name">—</div><div class="perf-type-note">no data</div>`;
 
-        return `<div class="carousel-card card-types">
-            <div class="card-top"><span class="card-emoji">🏆</span><span class="card-label">CONTENT TYPE RANKING</span></div>
-            <div class="type-bars">${barsHTML}</div>
-            <div class="card-insight">💡 Double down on ${ranked[0].cat} — your highest avg reach</div>
-        </div>`;
-    },
-
-    buildEngagementCard(posted) {
-        const withViews = posted.filter(c => c.views > 0);
-        if (withViews.length === 0) {
-            return `<div class="carousel-card card-engagement">
-                <div class="card-top"><span class="card-emoji">⚡</span><span class="card-label">ENGAGEMENT SCORE</span></div>
-                <div class="empty-card-msg">Sync metrics to calculate your engagement score</div>
-            </div>`;
-        }
-
-        const rates = withViews.map(c => (((c.likes || 0) + (c.comments || 0) + (c.shares || 0)) / c.views) * 100);
-        const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
-        const grades = [
-            { grade: 'A+', min: 8, color: '#00c853', next: null, nextLabel: null },
-            { grade: 'A',  min: 5, color: '#00c853', next: 8,    nextLabel: 'A+' },
-            { grade: 'B',  min: 3, color: '#00f2ea', next: 5,    nextLabel: 'A'  },
-            { grade: 'C',  min: 1, color: '#ffc107', next: 3,    nextLabel: 'B'  },
-            { grade: 'D',  min: 0, color: '#ff5252', next: 1,    nextLabel: 'C'  },
-        ];
-        const g = grades.find(x => avg >= x.min) || grades[grades.length - 1];
-        const bandMax = g.next || (g.min + 3);
-        const progress = Math.min(100, Math.round(((avg - g.min) / (bandMax - g.min)) * 100));
-        const toNext = g.next
-            ? `${(g.next - avg).toFixed(1)}% more engagement to reach grade ${g.nextLabel}`
-            : "Elite! You're in the top engagement tier";
-
-        return `<div class="carousel-card card-engagement">
-            <div class="card-top"><span class="card-emoji">⚡</span><span class="card-label">ENGAGEMENT SCORE</span></div>
-            <div class="grade-row">
-                <div class="grade-letter" style="color:${g.color}">${g.grade}</div>
-                <div class="grade-details">
-                    <div class="grade-rate">${avg.toFixed(2)}% avg engagement</div>
-                    <div class="grade-bar-wrap">
-                        <div class="grade-bar-track"><div class="grade-bar-fill" style="width:${progress}%;background:${g.color}"></div></div>
-                        <span class="grade-progress-label">${progress}%</span>
-                    </div>
+        return `<div class="carousel-card card-monthly-perf">
+            <div class="card-top">
+                <span class="card-emoji">📈</span>
+                <span class="card-label">MONTHLY PERFORMANCE</span>
+                <span class="card-month-label">${label}</span>
+            </div>
+            <div class="perf-grid">
+                <div class="perf-section">
+                    <div class="perf-section-label">REACH</div>
+                    <div class="perf-big-num">${this.fmt(totalViews)}</div>
+                    <div class="perf-sub">${this.fmt(totalLikes)} likes · ${likeRate}% rate</div>
+                </div>
+                <div class="perf-vdivider"></div>
+                <div class="perf-section">
+                    <div class="perf-section-label">TOP TYPE</div>
+                    ${typeHTML}
+                </div>
+                <div class="perf-vdivider"></div>
+                <div class="perf-section">
+                    <div class="perf-section-label">ENGAGEMENT</div>
+                    <div class="perf-grade" style="color:${gradeColor}">${gradeVal}</div>
+                    <div class="perf-eng-rate">${engRate}</div>
                 </div>
             </div>
-            <div class="card-insight">💡 ${toNext}</div>
+            <div class="card-insight">💡 ${postedData.length} post${postedData.length!==1?'s':''} tracked · ${label}</div>
         </div>`;
     },
 
-    buildStarCard(posted) {
-        const withViews = posted.filter(c => c.views > 0);
-        if (withViews.length === 0) {
-            return `<div class="carousel-card card-star">
-                <div class="card-top"><span class="card-emoji">🔥</span><span class="card-label">STAR POST</span></div>
-                <div class="empty-card-msg">Sync your TikTok metrics to find your star post</div>
+    // ── Card 3: Pipeline Health — monthly created vs published ───────
+    buildPipelineCard(content) {
+        const now = new Date();
+        const months = [];
+        for (let i = 3; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push({
+                label:  ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' \'' + String(d.getFullYear()).slice(2),
+                prefix: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+            });
+        }
+
+        const rows = months.map(m => ({
+            ...m,
+            created:   content.filter(c => c.createdDate && c.createdDate.startsWith(m.prefix)).length,
+            published: content.filter(c => c.status === 'posted' && c.dueDate && c.dueDate.startsWith(m.prefix)).length,
+        })).filter(m => m.created > 0 || m.published > 0);
+
+        if (rows.length === 0) {
+            return `<div class="carousel-card card-pipeline">
+                <div class="card-top"><span class="card-emoji">📊</span><span class="card-label">PIPELINE HEALTH</span></div>
+                <div class="empty-card-msg">Add content to start tracking your monthly pipeline</div>
             </div>`;
         }
 
-        const star = [...withViews].sort((a, b) => {
-            const eA = (((a.likes || 0) + (a.comments || 0) + (a.shares || 0)) / a.views) * 100;
-            const eB = (((b.likes || 0) + (b.comments || 0) + (b.shares || 0)) / b.views) * 100;
-            return eB - eA;
-        })[0];
-        const eng = (((star.likes || 0) + (star.comments || 0) + (star.shares || 0)) / star.views * 100).toFixed(2);
+        const maxVal = Math.max(...rows.map(m => Math.max(m.created, m.published)), 1);
+        const rowsHTML = rows.map(m => {
+            const cW = Math.max(4, Math.round((m.created   / maxVal) * 100));
+            const pW = Math.max(4, Math.round((m.published / maxVal) * 100));
+            return `<div class="pl-month-row">
+                <span class="pl-month-lbl">${m.label}</span>
+                <div class="pl-bars">
+                    <div class="pl-bar-line">
+                        <span class="pl-bar-tag created">Created</span>
+                        <div class="pl-bar-track"><div class="pl-bar-fill bar-created" style="width:${cW}%"></div></div>
+                        <span class="pl-bar-num">${m.created}</span>
+                    </div>
+                    <div class="pl-bar-line">
+                        <span class="pl-bar-tag published">Published</span>
+                        <div class="pl-bar-track"><div class="pl-bar-fill bar-published" style="width:${pW}%"></div></div>
+                        <span class="pl-bar-num">${m.published}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
 
-        return `<div class="carousel-card card-star">
-            <div class="card-top"><span class="card-emoji">🔥</span><span class="card-label">STAR POST</span></div>
-            <div class="star-title">${star.title}</div>
-            <div class="star-metrics">
-                <div class="star-metric"><span class="star-val">${this.fmt(star.views)}</span><span class="star-lbl">views</span></div>
-                <div class="star-metric"><span class="star-val">${this.fmt(star.likes)}</span><span class="star-lbl">likes</span></div>
-                <div class="star-metric"><span class="star-val">${this.fmt(star.comments || 0)}</span><span class="star-lbl">comments</span></div>
-                <div class="star-metric star-highlight"><span class="star-val">${eng}%</span><span class="star-lbl">engagement</span></div>
-            </div>
-            <div class="card-insight">💡 This is resonating — make more content like this one</div>
-        </div>`;
-    },
-
-    buildPipelineCard(content) {
-        const stages = [
-            { key: 'idea',        label: 'Ideas',   emoji: '💡' },
-            { key: 'in-progress', label: 'WIP',     emoji: '🎬' },
-            { key: 'filmed',      label: 'Filmed',  emoji: '📹' },
-            { key: 'edited',      label: 'Edited',  emoji: '✂️' },
-            { key: 'posted',      label: 'Posted',  emoji: '✅' },
-        ];
-        const counts = stages.map(s => ({ ...s, count: content.filter(c => c.status === s.key).length }));
-        const postedCount = counts.find(s => s.key === 'posted')?.count || 0;
-        const inFlight = content.length - postedCount;
-
-        let score = 0;
-        if (postedCount > 0) score += 40;
-        if (inFlight > 0) score += 30;
-        score += Math.min(30, counts.filter(s => s.key !== 'posted' && s.count > 0).length * 10);
-
-        const insight = inFlight === 0 && postedCount > 0
-            ? 'Pipeline empty — brainstorm your next batch of ideas!'
-            : inFlight > 3
-                ? `${inFlight} pieces in production — great content velocity!`
-                : postedCount === 0
-                    ? 'Post your first piece to start building momentum'
-                    : `${inFlight} piece${inFlight !== 1 ? 's' : ''} in the works — keep it going!`;
-
-        const stagesHTML = counts.map(s => `<div class="pipeline-stage${s.count > 0 ? ' active' : ''}">
-                <span class="pipeline-emoji">${s.emoji}</span>
-                <span class="pipeline-count">${s.count}</span>
-                <span class="pipeline-label">${s.label}</span>
-            </div>`).join('<div class="pipeline-arrow">›</div>');
+        const latest = rows[rows.length - 1];
+        const gap = latest.created - latest.published;
+        const insight = gap > 0
+            ? `${gap} piece${gap!==1?'s':''} from ${latest.label} still in the pipeline`
+            : latest.published > 0
+                ? `All ${latest.published} pieces from ${latest.label} are published — keep going!`
+                : 'No activity this month yet — plant some seeds!';
 
         return `<div class="carousel-card card-pipeline">
             <div class="card-top"><span class="card-emoji">📊</span><span class="card-label">PIPELINE HEALTH</span></div>
-            <div class="pipeline-stages">${stagesHTML}</div>
-            <div class="pipeline-score-row">
-                <span class="pipeline-score-label">Pipeline Score</span>
-                <span class="pipeline-score-val">${score}/100</span>
-            </div>
+            <div class="pl-months">${rowsHTML}</div>
             <div class="card-insight">💡 ${insight}</div>
         </div>`;
     },

@@ -4,5 +4,9 @@ node_modules/
 # Environment variables (API keys — never commit this)
 .env
 
+# Runtime data files — your personal content lives here, keep it off GitHub
+data.json
+accounts.json
+
 # OS files
 .DS_Store
