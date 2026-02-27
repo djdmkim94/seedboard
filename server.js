@@ -170,7 +170,7 @@ Summary: ${summary}
 Please provide:
 1. A short header (max 50 characters)
 2. A caption (MAX 30 words total, each sentence MAX 12 words)
-3. 5-8 relevant hashtags
+3. Exactly 5 hashtags (no more, no less)
 
 Respond in JSON format only:
 {
@@ -202,7 +202,7 @@ Respond in JSON format only:
         res.json({
             header: result.header,
             caption: result.caption,
-            hashtags: result.hashtags,
+            hashtags: result.hashtags.slice(0, 5),
         });
     } catch (error) {
         console.error('AI Generation error:', error);

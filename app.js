@@ -69,6 +69,16 @@ const App = {
         document.getElementById('detailCopyCaptionBtn').addEventListener('click', () => this.copyToClipboard(document.getElementById('detailCaption').textContent.trim()));
         document.getElementById('detailCopyHashtagsBtn').addEventListener('click', () => this.copyToClipboard(document.getElementById('detailHashtags').textContent.trim()));
 
+        // Enforce 5-hashtag limit on blur
+        document.getElementById('detailHashtags').addEventListener('blur', () => {
+            const el = document.getElementById('detailHashtags');
+            const tags = el.textContent.trim().split(/\s+/).filter(t => t.length > 0);
+            if (tags.length > 5) {
+                el.textContent = tags.slice(0, 5).join(' ');
+                this.showToast('Max 5 hashtags — trimmed to 5', 'error');
+            }
+        });
+
         // Filters + sort
         document.getElementById('sortFilter').addEventListener('change', () => this.renderContent());
         document.getElementById('statusFilter').addEventListener('change', () => this.renderContent());
