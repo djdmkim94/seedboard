@@ -55,7 +55,7 @@ body {
     background-color: var(--bg-deep);
     background-image:
         radial-gradient(ellipse at 15% 85%, rgba(57,78,21,0.2) 0%, transparent 50%),
-        radial-gradient(ellipse at 85% 15%, rgba(235,124,13,0.03) 0%, transparent 40%);
+        radial-gradient(ellipse at 85% 15%, var(--theme-body-glow, rgba(235,124,13,0.03)) 0%, transparent 40%);
     background-attachment: fixed;
     color: var(--text);
     line-height: 1.6;
@@ -136,7 +136,7 @@ input, textarea, select,
 .brand-name {
     font-family: 'Fredoka', sans-serif;
     font-weight: 700;
-    font-size: 1.35rem;
+    font-size: 1.75rem;
     letter-spacing: 0.3px;
     -webkit-text-fill-color: initial;
     background: none;
@@ -297,17 +297,23 @@ input, textarea, select,
     display: flex;
     gap: 20px;
     margin-bottom: 20px;
-    align-items: stretch;
+    align-items: flex-start;
 }
 
 .carousel-row .insight-carousel {
     flex: 1;
     min-width: 0;
     margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.carousel-row .insight-carousel .carousel-track-wrapper {
+    flex: 1;
 }
 
 .carousel-row .reminders-panel {
-    width: 260px;
+    width: 400px;
     flex-shrink: 0;
 }
 
@@ -347,7 +353,43 @@ input, textarea, select,
 
 /* Reminders Panel */
 .reminders-panel {
-    overflow-y: auto;
+    overflow: visible;
+}
+
+.reminders-content-grid {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+}
+
+.ring-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 168px;
+}
+
+.ring-col-divider {
+    width: 1px;
+    background: var(--border-color);
+    align-self: stretch;
+    margin: 4px 16px 0;
+    flex-shrink: 0;
+}
+
+.ring-right {
+    flex: 1;
+    min-width: 0;
+    padding-top: 4px;
+}
+
+.ring-right .reminders-list {
+    max-height: 280px;
+}
+
+.reminders-panel > h2 {
+    margin-bottom: 12px;
 }
 
 .reminder-stats {
@@ -423,6 +465,9 @@ input, textarea, select,
 .reminder-title {
     font-weight: 500;
     margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .reminder-date {
@@ -516,6 +561,30 @@ input, textarea, select,
 
 .result-content.hashtags {
     color: var(--accent-secondary);
+}
+
+.result-editable {
+    cursor: text;
+    outline: none;
+    transition: border-color 0.15s, background-color 0.15s;
+    white-space: pre-wrap;
+}
+
+.result-editable:hover {
+    border-color: var(--orange-primary);
+}
+
+.result-editable:focus {
+    border-color: var(--orange-primary);
+    background-color: var(--bg-primary);
+    box-shadow: 0 0 0 2px rgba(235, 124, 13, 0.15);
+}
+
+.editable-hint {
+    font-size: 0.72rem;
+    font-weight: 400;
+    opacity: 0.45;
+    font-style: italic;
 }
 
 .btn-copy {
@@ -863,6 +932,21 @@ input, textarea, select,
         width: 100%;
     }
 
+    .reminders-content-grid {
+        flex-direction: column;
+    }
+
+    .ring-left {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        gap: 20px;
+    }
+
+    .ring-col-divider {
+        display: none;
+    }
+
     .header {
         flex-direction: column;
         gap: 15px;
@@ -1177,11 +1261,11 @@ input, textarea, select,
 }
 
 .carousel-title {
-    font-size: 0.8rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 .carousel-controls {
@@ -1225,11 +1309,10 @@ input, textarea, select,
 /* --- Carousel Cards --- */
 .carousel-card {
     min-width: 100%;
-    padding: 16px 20px 14px;
+    padding: 12px 20px 12px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    min-height: 300px;
+    gap: 8px;
     box-sizing: border-box;
 }
 
@@ -1538,10 +1621,10 @@ input, textarea, select,
 
 /* Carousel Footer */
 .carousel-footer {
-    padding: 10px 20px 12px;
+    padding: 8px 20px 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     border-top: 1px solid var(--border-color);
 }
 
@@ -1631,7 +1714,7 @@ input, textarea, select,
 
 .flow-panels {
     display: grid;
-    grid-template-columns: 1fr 24px 1fr 24px 1fr;
+    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr) 24px minmax(0, 1fr);
     gap: 0;
     align-items: stretch;
 }
@@ -1646,6 +1729,12 @@ input, textarea, select,
 }
 
 /* Library Panel */
+.library-panel,
+.generator-panel,
+.publish-panel {
+    min-width: 0;
+}
+
 .library-panel {
     display: flex;
     flex-direction: column;
@@ -2137,8 +2226,8 @@ input, textarea, select,
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 16px 0 8px;
+    gap: 4px;
+    padding: 4px 0 6px;
 }
 
 .progress-ring-wrap {
@@ -2188,10 +2277,12 @@ input, textarea, select,
 
 .ring-stats-row {
     display: flex;
-    justify-content: center;
-    gap: 14px;
-    padding: 8px 0 4px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    padding: 6px 0 4px;
+    width: 100%;
+    padding-left: 12px;
 }
 
 .ring-stat-item {
@@ -2210,12 +2301,6 @@ input, textarea, select,
     flex-shrink: 0;
 }
 
-.ring-divider {
-    width: 100%;
-    height: 1px;
-    background: var(--border);
-    margin: 10px 0 6px;
-}
 
 .due-soon-label {
     font-family: 'Fredoka', sans-serif;
@@ -2267,8 +2352,8 @@ input, textarea, select,
 
 .garden-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+    gap: 14px;
     padding-top: 8px;
 }
 
@@ -2277,8 +2362,8 @@ input, textarea, select,
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 16px 12px 14px;
+    gap: 8px;
+    padding: 16px 10px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -2310,38 +2395,16 @@ input, textarea, select,
 
 /* plant CSS art container */
 .plant-art {
-    width: 64px;
-    height: 72px;
+    width: 52px;
+    height: 52px;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
     position: relative;
 }
 
-/* Seed stage */
-.plant-art.seed::after {
-    content: '🌰';
-    font-size: 2.4rem;
-    line-height: 1;
-}
-
-/* Sprout / in-progress stage */
-.plant-art.sprout::after {
-    content: '🌱';
-    font-size: 2.4rem;
-    line-height: 1;
-}
-
-/* Filmed / edited stage */
-.plant-art.plant::after {
-    content: '🌿';
-    font-size: 2.4rem;
-    line-height: 1;
-}
-
-/* Harvested / posted stage */
-.plant-art.harvest::after {
-    content: '🥕';
+/* Plant emoji — rendered directly in HTML so harvest icon is theme-aware */
+.plant-emoji {
     font-size: 2.4rem;
     line-height: 1;
 }
@@ -2433,14 +2496,16 @@ input, textarea, select,
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     margin-bottom: 20px;
+    justify-items: center;
 }
 
+/* Base crop option — japandi: warm, minimal, earthy */
 .crop-option {
     aspect-ratio: 1;
-    border: 2px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-card);
-    font-size: 1.8rem;
+    width: 100%;
+    border: 1.5px solid transparent;
+    border-radius: 10px;
+    font-size: 2rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2449,17 +2514,25 @@ input, textarea, select,
     padding: 0;
 }
 
-.crop-option:hover {
-    border-color: var(--border-hover);
-    background: var(--bg-card-hover);
-    transform: scale(1.06);
-}
+/* Per-crop japandi warm tints */
+.crop-option[data-hue="orange"] { background: rgba(195,120,40,0.10); border-color: rgba(195,120,40,0.25); }
+.crop-option[data-hue="red"]    { background: rgba(180,55,45,0.10);  border-color: rgba(180,55,45,0.25);  }
+.crop-option[data-hue="amber"]  { background: rgba(195,140,50,0.10); border-color: rgba(195,140,50,0.25); }
+.crop-option[data-hue="yellow"] { background: rgba(175,145,45,0.10); border-color: rgba(175,145,45,0.25); }
+.crop-option[data-hue="sage"]   { background: rgba(90,120,75,0.10);  border-color: rgba(90,120,75,0.25);  }
+.crop-option[data-hue="indigo"] { background: rgba(75,85,145,0.10);  border-color: rgba(75,85,145,0.25);  }
+.crop-option[data-hue="plum"]   { background: rgba(100,60,115,0.10); border-color: rgba(100,60,115,0.25); }
 
-.crop-option.active {
-    border-color: var(--orange-primary);
-    background: var(--orange-glow);
-    box-shadow: 0 0 0 2px rgba(235,124,13,0.2);
-}
+.crop-option:hover { transform: scale(1.07); filter: brightness(1.15); }
+
+/* Active states — each crop glows in its own warm tone */
+.crop-option.active[data-hue="orange"] { background: rgba(195,120,40,0.22); border-color: rgba(195,120,40,0.7); box-shadow: 0 0 0 2px rgba(195,120,40,0.18); }
+.crop-option.active[data-hue="red"]    { background: rgba(180,55,45,0.22);  border-color: rgba(180,55,45,0.7);  box-shadow: 0 0 0 2px rgba(180,55,45,0.18);  }
+.crop-option.active[data-hue="amber"]  { background: rgba(195,140,50,0.22); border-color: rgba(195,140,50,0.7); box-shadow: 0 0 0 2px rgba(195,140,50,0.18); }
+.crop-option.active[data-hue="yellow"] { background: rgba(175,145,45,0.22); border-color: rgba(175,145,45,0.7); box-shadow: 0 0 0 2px rgba(175,145,45,0.18); }
+.crop-option.active[data-hue="sage"]   { background: rgba(90,120,75,0.22);  border-color: rgba(90,120,75,0.7);  box-shadow: 0 0 0 2px rgba(90,120,75,0.18);  }
+.crop-option.active[data-hue="indigo"] { background: rgba(75,85,145,0.22);  border-color: rgba(75,85,145,0.7);  box-shadow: 0 0 0 2px rgba(75,85,145,0.18);  }
+.crop-option.active[data-hue="plum"]   { background: rgba(100,60,115,0.22); border-color: rgba(100,60,115,0.7); box-shadow: 0 0 0 2px rgba(100,60,115,0.18); }
 
 
 /* ============================

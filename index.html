@@ -67,7 +67,7 @@
         <div class="carousel-row">
             <section class="insight-carousel" id="insightCarousel">
                 <div class="carousel-header">
-                    <span class="carousel-title">⚡ Weekly Performance Snapshot</span>
+                    <span class="carousel-title">Monthly Progress Report</span>
                     <div class="carousel-controls">
                         <button class="carousel-arrow" id="carouselPrev">‹</button>
                         <button class="carousel-arrow" id="carouselNext">›</button>
@@ -89,55 +89,60 @@
             <!-- This Week -->
             <section class="panel reminders-panel">
                 <h2>This Week</h2>
-                <div id="remindersContent">
+                <div id="remindersContent" class="reminders-content-grid">
 
-                    <!-- Progress Ring -->
-                    <div class="progress-ring-container">
-                        <div class="progress-ring-wrap">
-                            <svg class="progress-ring-svg" viewBox="0 0 160 160" width="140" height="140">
-                                <defs>
-                                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stop-color="#eb7c0d"/>
-                                        <stop offset="100%" stop-color="#f49325"/>
-                                    </linearGradient>
-                                    <filter id="ringGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                        <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="rgba(235,124,13,0.3)"/>
-                                    </filter>
-                                </defs>
-                                <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(252,246,182,0.06)" stroke-width="8"/>
-                                <circle id="ringProgress" cx="80" cy="80" r="68" fill="none"
-                                    stroke="url(#ringGrad)" stroke-width="8" stroke-linecap="round"
-                                    stroke-dasharray="427.26" stroke-dashoffset="427.26"
-                                    transform="rotate(-90 80 80)" filter="url(#ringGlow)"
-                                    style="transition: stroke-dashoffset 0.8s ease"/>
-                            </svg>
-                            <div class="ring-center">
-                                <svg viewBox="0 0 60 72" fill="none" xmlns="http://www.w3.org/2000/svg" width="38" height="46">
-                                    <ellipse cx="26" cy="14" rx="5" ry="10" transform="rotate(-10 26 14)" stroke="#2c5530" stroke-width="3" fill="none"/>
-                                    <ellipse cx="36" cy="12" rx="5" ry="10" transform="rotate(15 36 12)" stroke="#2c5530" stroke-width="3" fill="none"/>
-                                    <path d="M18 24 C18 24, 16 42, 28 62 C28 62, 30 66, 32 62 C44 42, 42 24, 42 24 C42 20, 18 20, 18 24Z" stroke="#eb7c0d" stroke-width="3" fill="rgba(235,124,13,0.06)" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <line x1="22" y1="34" x2="34" y2="34" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
-                                    <line x1="23" y1="42" x2="33" y2="42" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                    <!-- Left: Progress Ring -->
+                    <div class="ring-left">
+                        <div class="progress-ring-container">
+                            <div class="progress-ring-wrap">
+                                <svg class="progress-ring-svg" viewBox="0 0 160 160" width="140" height="140">
+                                    <defs>
+                                        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#eb7c0d"/>
+                                            <stop offset="100%" stop-color="#f49325"/>
+                                        </linearGradient>
+                                        <filter id="ringGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                            <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="rgba(235,124,13,0.3)"/>
+                                        </filter>
+                                    </defs>
+                                    <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(252,246,182,0.06)" stroke-width="8"/>
+                                    <circle id="ringProgress" cx="80" cy="80" r="68" fill="none"
+                                        stroke="url(#ringGrad)" stroke-width="8" stroke-linecap="round"
+                                        stroke-dasharray="427.26" stroke-dashoffset="427.26"
+                                        transform="rotate(-90 80 80)" filter="url(#ringGlow)"
+                                        style="transition: stroke-dashoffset 0.8s ease"/>
                                 </svg>
+                                <div class="ring-center">
+                                    <svg viewBox="0 0 60 72" fill="none" xmlns="http://www.w3.org/2000/svg" width="38" height="46">
+                                        <ellipse cx="26" cy="14" rx="5" ry="10" transform="rotate(-10 26 14)" stroke="#2c5530" stroke-width="3" fill="none"/>
+                                        <ellipse cx="36" cy="12" rx="5" ry="10" transform="rotate(15 36 12)" stroke="#2c5530" stroke-width="3" fill="none"/>
+                                        <path d="M18 24 C18 24, 16 42, 28 62 C28 62, 30 66, 32 62 C44 42, 42 24, 42 24 C42 20, 18 20, 18 24Z" stroke="#eb7c0d" stroke-width="3" fill="rgba(235,124,13,0.06)" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <line x1="22" y1="34" x2="34" y2="34" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                                        <line x1="23" y1="42" x2="33" y2="42" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                                    </svg>
+                                </div>
                             </div>
+                            <div class="ring-pct" id="ringPct">0%</div>
+                            <div class="ring-label-text">completion rate</div>
                         </div>
-                        <div class="ring-pct" id="ringPct">0%</div>
-                        <div class="ring-label-text">completion rate</div>
+                        <div class="ring-stats-row">
+                            <span class="ring-stat-item"><span class="ring-dot" style="background:var(--orange-primary)"></span><span id="postedCount">0</span> posted</span>
+                            <span class="ring-stat-item"><span class="ring-dot" style="background:var(--green-bright)"></span><span id="inProgressCount">0</span> growing</span>
+                            <span class="ring-stat-item"><span class="ring-dot" style="background:var(--cream-dim)"></span><span id="ideaCount">0</span> seeds</span>
+                        </div>
                     </div>
 
-                    <!-- Status dots -->
-                    <div class="ring-stats-row">
-                        <span class="ring-stat-item"><span class="ring-dot" style="background:var(--orange-primary)"></span><span id="postedCount">0</span> posted</span>
-                        <span class="ring-stat-item"><span class="ring-dot" style="background:var(--green-bright)"></span><span id="inProgressCount">0</span> growing</span>
-                        <span class="ring-stat-item"><span class="ring-dot" style="background:var(--cream-dim)"></span><span id="ideaCount">0</span> seeds</span>
+                    <!-- Vertical divider -->
+                    <div class="ring-col-divider"></div>
+
+                    <!-- Right: Due Soon list -->
+                    <div class="ring-right">
+                        <p class="due-soon-label">Due Soon</p>
+                        <ul id="remindersList" class="reminders-list">
+                            <li class="empty-state">No upcoming deadlines</li>
+                        </ul>
                     </div>
 
-                    <div class="ring-divider"></div>
-                    <p class="due-soon-label">Due Soon</p>
-
-                    <ul id="remindersList" class="reminders-list">
-                        <li class="empty-state">No upcoming deadlines</li>
-                    </ul>
                 </div>
             </section>
         </div>
@@ -158,7 +163,7 @@
                     <div class="panel-header">
                         <h2>Content Library</h2>
                         <div class="library-header-actions">
-                            <button id="importCsvBtn" class="btn btn-secondary btn-sm" title="Import from TikTok/Instagram CSV export">⬆ Import CSV</button>
+                            <button id="importCsvBtn" class="btn btn-secondary btn-sm" title="Import from TikTok/Instagram export (.csv, .txt, .json)">⬆ Import</button>
                             <button id="addContentBtn" class="btn btn-primary"><span class="icon">+</span> Add</button>
                         </div>
                     </div>
@@ -205,18 +210,18 @@
                         </button>
                         <div id="aiResults" class="ai-results hidden">
                             <div class="result-group">
-                                <label>Header</label>
-                                <div class="result-content" id="generatedHeader"></div>
+                                <label>Header <span class="editable-hint">— click to edit</span></label>
+                                <div class="result-content result-editable" id="generatedHeader" contenteditable="true" spellcheck="true"></div>
                                 <button class="btn-copy" data-target="generatedHeader">Copy</button>
                             </div>
                             <div class="result-group">
-                                <label>Caption</label>
-                                <div class="result-content" id="generatedCaption"></div>
+                                <label>Caption <span class="editable-hint">— click to edit</span></label>
+                                <div class="result-content result-editable" id="generatedCaption" contenteditable="true" spellcheck="true"></div>
                                 <button class="btn-copy" data-target="generatedCaption">Copy</button>
                             </div>
                             <div class="result-group">
-                                <label>Hashtags</label>
-                                <div class="result-content hashtags" id="generatedHashtags"></div>
+                                <label>Hashtags <span class="editable-hint">— click to edit</span></label>
+                                <div class="result-content hashtags result-editable" id="generatedHashtags" contenteditable="true" spellcheck="false"></div>
                                 <button class="btn-copy" data-target="generatedHashtags">Copy</button>
                             </div>
                             <div class="result-actions">
@@ -322,6 +327,10 @@
                     <div class="form-group">
                         <label for="contentTitle">Title *</label>
                         <input type="text" id="contentTitle" required placeholder="Content title or topic">
+                    </div>
+                    <div class="form-group">
+                        <label for="contentHeader">Header</label>
+                        <input type="text" id="contentHeader" placeholder="Short hook or headline">
                     </div>
                     <div class="form-group">
                         <label for="contentSummary">Summary</label>
@@ -496,14 +505,13 @@
                 </div>
                 <p class="crop-picker-subtitle">Choose your avatar crop for the dashboard</p>
                 <div class="crop-grid" id="cropGrid">
-                    <button class="crop-option active" data-crop="🥕" title="Carrot">🥕</button>
-                    <button class="crop-option" data-crop="🌽" title="Corn">🌽</button>
-                    <button class="crop-option" data-crop="🍅" title="Tomato">🍅</button>
-                    <button class="crop-option" data-crop="🥦" title="Broccoli">🥦</button>
-                    <button class="crop-option" data-crop="🍆" title="Eggplant">🍆</button>
-                    <button class="crop-option" data-crop="🌶️" title="Chili">🌶️</button>
-                    <button class="crop-option" data-crop="🥬" title="Leafy greens">🥬</button>
-                    <button class="crop-option" data-crop="🌻" title="Sunflower">🌻</button>
+                    <button class="crop-option active" data-crop="🥕" data-hue="orange" title="Carrot">🥕</button>
+                    <button class="crop-option" data-crop="🌶️" data-hue="red"    title="Chili pepper">🌶️</button>
+                    <button class="crop-option" data-crop="🍊" data-hue="amber"  title="Orange">🍊</button>
+                    <button class="crop-option" data-crop="🌽" data-hue="yellow" title="Corn">🌽</button>
+                    <button class="crop-option" data-crop="🥬" data-hue="sage"   title="Lettuce">🥬</button>
+                    <button class="crop-option" data-crop="🫐" data-hue="indigo" title="Blueberry">🫐</button>
+                    <button class="crop-option" data-crop="🍆" data-hue="plum"   title="Eggplant">🍆</button>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" id="cancelCropPicker">Cancel</button>
@@ -516,19 +524,19 @@
         <div id="csvImportModal" class="modal hidden">
             <div class="modal-content csv-import-content">
                 <div class="modal-header">
-                    <h3>Import CSV</h3>
+                    <h3>Import Data</h3>
                     <button class="modal-close" id="closeCsvImport">&times;</button>
                 </div>
 
                 <!-- Step 1: Upload -->
                 <div id="csvStep1">
-                    <p class="csv-help-text">Export your analytics from <strong>TikTok Creator Portal</strong> or <strong>Meta Business Suite</strong> and upload the CSV here. Seedboard auto-detects the format.</p>
+                    <p class="csv-help-text">Export your analytics from <strong>TikTok Creator Portal</strong> or <strong>Meta Business Suite</strong> and upload here. Supports <strong>.csv</strong>, <strong>.txt</strong> (tab-separated), and <strong>.json</strong> — Seedboard auto-detects the format.</p>
                     <div class="csv-drop-zone" id="csvDropZone">
                         <div class="csv-drop-icon">📂</div>
-                        <p>Drag & drop your CSV file here</p>
+                        <p>Drag & drop your file here</p>
                         <p class="csv-drop-sub">or</p>
                         <label class="btn btn-secondary" for="csvFileInput">Choose File</label>
-                        <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" style="display:none">
+                        <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt,.json" style="display:none">
                     </div>
                     <div class="csv-template-row">
                         <span class="csv-template-label">Don't have an export yet?</span>

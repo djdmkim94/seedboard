@@ -929,12 +929,13 @@ const App = {
         const grid = document.getElementById('gardenGrid');
         if (!grid) return;
 
-        const stageClass = {
-            idea: 'seed',
-            'in-progress': 'sprout',
-            filmed: 'plant',
-            edited: 'plant',
-            posted: 'harvest',
+        const harvestCrop = localStorage.getItem('seedboard-crop') || '🥕';
+        const stageEmoji = {
+            idea:          '🌰',
+            'in-progress': '🌱',
+            filmed:        '🌿',
+            edited:        '🌿',
+            posted:        harvestCrop,
         };
 
         const filtered = filter === 'all'
@@ -947,10 +948,10 @@ const App = {
             });
 
         const cards = filtered.map(item => {
-            const art = stageClass[item.status] || 'seed';
+            const emoji = stageEmoji[item.status] || '🌰';
             return `
                 <div class="plant-card ${item.status}" onclick="App.openViewModal('${item.id}')">
-                    <div class="plant-art ${art}"></div>
+                    <div class="plant-art"><span class="plant-emoji">${emoji}</span></div>
                     <div class="plant-card-title">${this.escapeHtml(item.title)}</div>
                     <div class="plant-card-status">${item.status.replace('-', ' ')}</div>
                 </div>`;
@@ -988,13 +989,51 @@ const App = {
         const crop = active.dataset.crop;
         localStorage.setItem('seedboard-crop', crop);
         document.getElementById('avatarCrop').textContent = crop;
+        this.applyTheme(crop);
         this.closeCropPicker();
         this.showToast('Crop updated!', 'success');
     },
 
+    // ── Crop themes — each crop maps to a full warm/japandi color palette ──
+    cropThemes: {
+        '🥕': { primary: '#eb7c0d', light: '#f49325', glow: 'rgba(235,124,13,0.15)', bodyGlow: 'rgba(235,124,13,0.04)' },
+        '🌶️': { primary: '#c43028', light: '#d44038', glow: 'rgba(196,48,40,0.15)',  bodyGlow: 'rgba(196,48,40,0.04)'  },
+        '🍊': { primary: '#d07818', light: '#e08c28', glow: 'rgba(208,120,24,0.15)', bodyGlow: 'rgba(208,120,24,0.04)' },
+        '🌽': { primary: '#a89010', light: '#c4aa20', glow: 'rgba(168,144,16,0.15)', bodyGlow: 'rgba(168,144,16,0.04)' },
+        '🥬': { primary: '#4e7840', light: '#629654', glow: 'rgba(78,120,64,0.15)',  bodyGlow: 'rgba(78,120,64,0.04)'  },
+        '🫐': { primary: '#3d4e8a', light: '#5060a4', glow: 'rgba(61,78,138,0.15)',  bodyGlow: 'rgba(61,78,138,0.04)'  },
+        '🍆': { primary: '#663278', light: '#804090', glow: 'rgba(102,50,120,0.15)', bodyGlow: 'rgba(102,50,120,0.04)' },
+    },
+
+    applyTheme(crop) {
+        const t = this.cropThemes[crop] || this.cropThemes['🥕'];
+        const root = document.documentElement;
+
+        // Core accent vars — everything using var(--orange-primary) etc. updates automatically
+        root.style.setProperty('--orange-primary',    t.primary);
+        root.style.setProperty('--orange-light',      t.light);
+        root.style.setProperty('--orange-glow',       t.glow);
+        root.style.setProperty('--accent-primary',    t.primary);
+        root.style.setProperty('--accent-gradient',   `linear-gradient(135deg, ${t.primary}, ${t.light})`);
+        root.style.setProperty('--theme-body-glow',   t.bodyGlow);
+
+        // SVG ring gradient inside This Week panel
+        const stop0 = document.querySelector('#ringGrad stop:first-child');
+        const stop1 = document.querySelector('#ringGrad stop:last-child');
+        const glow  = document.querySelector('#ringGlow feDropShadow');
+        if (stop0) stop0.setAttribute('stop-color', t.primary);
+        if (stop1) stop1.setAttribute('stop-color', t.light);
+        if (glow)  glow.setAttribute('flood-color', t.glow);
+
+        // Re-render garden so harvest icons update immediately
+        const activeFilter = document.querySelector('.garden-filter.active')?.dataset.filter || 'all';
+        this.renderGarden(activeFilter);
+    },
+
     restoreCrop() {
-        const saved = localStorage.getItem('seedboard-crop');
-        if (saved) document.getElementById('avatarCrop').textContent = saved;
+        const saved = localStorage.getItem('seedboard-crop') || '🥕';
+        document.getElementById('avatarCrop').textContent = saved;
+        this.applyTheme(saved);
     },
 
     // ─────────────────────────────────────────────────────────────────
@@ -1018,12 +1057,16 @@ const App = {
         document.getElementById('csvStep2').classList.toggle('hidden', n !== 2);
     },
 
-    /** Parse CSV text into array of objects keyed by header row */
+    /** Parse CSV/TSV text into array of objects keyed by header row */
     csvParse(text) {
         const lines = text.trim().split(/\r?\n/);
         if (lines.length < 2) return [];
 
+        // Auto-detect delimiter: tab (TikTok .txt) vs comma
+        const delim = lines[0].includes('\t') ? '\t' : ',';
+
         const parseLine = (line) => {
+            if (delim === '\t') return line.split('\t').map(f => f.replace(/^"|"$/g, '').trim());
             const fields = [];
             let cur = '', inQ = false;
             for (let i = 0; i < line.length; i++) {
@@ -1045,6 +1088,47 @@ const App = {
                 headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, '').trim(); });
                 return obj;
             });
+    },
+
+    /** Parse TikTok JSON export into flat row objects matching our CSV column names */
+    csvParseJson(text) {
+        let data;
+        try { data = JSON.parse(text); } catch { return []; }
+
+        // TikTok Creator Portal JSON shapes we've seen:
+        //   { "data": { "videos": [...] } }
+        //   { "Video": [...] }
+        //   [ {...}, {...} ]  (bare array)
+        let videos = null;
+        if (Array.isArray(data)) {
+            videos = data;
+        } else if (data.data?.videos) {
+            videos = data.data.videos;
+        } else if (data.data?.Video) {
+            videos = data.data.Video;
+        } else if (data.Video) {
+            videos = data.Video;
+        } else if (data.videos) {
+            videos = data.videos;
+        }
+        if (!videos || !videos.length) return [];
+
+        return videos.map(v => {
+            const stats = v.stats || v.statistics || {};
+            const date = v.createTime || v.create_time || v.date || '';
+            const dateStr = date ? new Date(typeof date === 'number' ? date * 1000 : date)
+                .toISOString().split('T')[0] : '';
+            return {
+                'Video Title':   v.title || v.desc || v.description || '',
+                'Video Views':   String(stats.playCount  || stats.play_count  || stats.views   || 0),
+                'Likes':         String(stats.likeCount  || stats.like_count  || stats.likes   || 0),
+                'Comments':      String(stats.commentCount || stats.comment_count || stats.comments || 0),
+                'Shares':        String(stats.shareCount || stats.share_count || stats.shares  || 0),
+                'Create Time':   dateStr,
+                'Share URL':     v.shareUrl || v.share_url || v.webVideoUrl || v.url || '',
+                'Hashtags':      Array.isArray(v.hashtags) ? v.hashtags.join(' ') : (v.hashtags || ''),
+            };
+        }).filter(r => r['Video Title'] || parseInt(r['Video Views']));
     },
 
     /** Map raw CSV column names to Seedboard field names */
@@ -1084,7 +1168,10 @@ const App = {
     csvReadFile(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            const rows = this.csvParse(e.target.result);
+            const isJson = file.name.toLowerCase().endsWith('.json');
+            const rows = isJson
+                ? this.csvParseJson(e.target.result)
+                : this.csvParse(e.target.result);
             if (rows.length === 0) {
                 this.showToast('No data rows found in file', 'error');
                 return;
