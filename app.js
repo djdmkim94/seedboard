@@ -66,6 +66,8 @@ const App = {
         document.getElementById('detailSaveBtn').addEventListener('click', () => this.saveDetailToItem());
         document.getElementById('detailPublishBtn').addEventListener('click', () => this.publishFromDetail());
         document.getElementById('detailEditBtn').addEventListener('click', () => this.openEditModal(this.selectedLibraryId));
+        document.getElementById('detailCopyCaptionBtn').addEventListener('click', () => this.copyToClipboard(document.getElementById('detailCaption').textContent.trim()));
+        document.getElementById('detailCopyHashtagsBtn').addEventListener('click', () => this.copyToClipboard(document.getElementById('detailHashtags').textContent.trim()));
 
         // Filters + sort
         document.getElementById('sortFilter').addEventListener('change', () => this.renderContent());
@@ -186,7 +188,6 @@ const App = {
         document.getElementById('contentId').value = item.id;
         document.getElementById('contentTitle').value = item.title;
         document.getElementById('contentSummary').value = item.summary;
-        document.getElementById('contentHeader').value = item.header;
         document.getElementById('contentCaption').value = item.caption;
         document.getElementById('contentHashtags').value = item.hashtags;
         document.getElementById('contentStatus').value = item.status;
@@ -284,7 +285,6 @@ const App = {
         const formData = {
             title: document.getElementById('contentTitle').value,
             summary: document.getElementById('contentSummary').value,
-            header: document.getElementById('contentHeader').value,
             caption: document.getElementById('contentCaption').value,
             hashtags: document.getElementById('contentHashtags').value,
             category: document.getElementById('contentCategory').value,

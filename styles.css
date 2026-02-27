@@ -1907,6 +1907,11 @@ input, textarea, select,
     justify-content: space-between;
 }
 
+.detail-field-actions {
+    display: flex;
+    gap: 6px;
+}
+
 .detail-editable {
     background-color: var(--bg-input);
     border: 1px solid var(--border-color);

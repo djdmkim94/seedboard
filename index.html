@@ -200,12 +200,18 @@
                     <div class="detail-field-section">
                         <div class="detail-field-header">
                             <label>Caption <span class="ai-badge">AI-enabled</span></label>
-                            <button class="btn btn-sm btn-secondary" id="detailGenerateBtn"><span class="icon">✨</span> Generate</button>
+                            <div class="detail-field-actions">
+                                <button class="btn btn-sm btn-secondary" id="detailCopyCaptionBtn">Copy</button>
+                                <button class="btn btn-sm btn-secondary" id="detailGenerateBtn"><span class="icon">✨</span> Generate</button>
+                            </div>
                         </div>
                         <div class="detail-editable" id="detailCaption" contenteditable="true" spellcheck="true" data-placeholder="No caption yet — click Generate or type here"></div>
                     </div>
                     <div class="detail-field-section">
-                        <label>Hashtags</label>
+                        <div class="detail-field-header">
+                            <label>Hashtags</label>
+                            <button class="btn btn-sm btn-secondary" id="detailCopyHashtagsBtn">Copy</button>
+                        </div>
                         <div class="detail-editable hashtags" id="detailHashtags" contenteditable="true" spellcheck="false" data-placeholder="No hashtags yet"></div>
                     </div>
                     <div class="detail-action-row">
@@ -289,10 +295,6 @@
                     <div class="form-group">
                         <label for="contentTitle">Title *</label>
                         <input type="text" id="contentTitle" required placeholder="Content title or topic">
-                    </div>
-                    <div class="form-group">
-                        <label for="contentHeader">Header</label>
-                        <input type="text" id="contentHeader" placeholder="Short hook or headline">
                     </div>
                     <div class="form-group">
                         <label for="contentSummary">Summary</label>
