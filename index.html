@@ -147,110 +147,72 @@
             </section>
         </div>
 
-        <!-- Content Creation Flow -->
-        <div class="task-flow">
-            <div class="flow-header">
-                <div class="flow-step-label"><span class="step-num">1</span> Content Library</div>
-                <div class="flow-connector">›</div>
-                <div class="flow-step-label"><span class="step-num">2</span> Caption Generator</div>
-                <div class="flow-connector">›</div>
-                <div class="flow-step-label"><span class="step-num">3</span> Publish</div>
-            </div>
-            <div class="flow-panels">
+        <!-- Content Workspace (Finder-style) -->
+        <div class="content-workspace">
 
-                <!-- 1: Content Library -->
-                <section class="panel library-panel">
-                    <div class="panel-header">
-                        <h2>Content Library</h2>
-                        <div class="library-header-actions">
-                            <button id="importCsvBtn" class="btn btn-secondary btn-sm" title="Import from TikTok/Instagram export (.csv, .txt, .json)">⬆ Import</button>
-                            <button id="addContentBtn" class="btn btn-primary"><span class="icon">+</span> Add</button>
-                        </div>
+            <!-- Left: Content Library -->
+            <section class="panel library-panel">
+                <div class="panel-header">
+                    <h2>Content Library</h2>
+                    <div class="library-header-actions">
+                        <button id="importCsvBtn" class="btn btn-secondary btn-sm" title="Import from TikTok/Instagram export (.csv, .txt, .json)">⬆ Import</button>
+                        <button id="addContentBtn" class="btn btn-primary"><span class="icon">+</span> Add</button>
                     </div>
-                    <div class="library-filters">
-                        <select id="sortFilter">
-                            <option value="priority">Priority</option>
-                            <option value="due-date">Due Date</option>
-                            <option value="status">By Status</option>
-                            <option value="newest">Newest</option>
-                            <option value="performance">Performance</option>
-                        </select>
-                        <select id="statusFilter">
-                            <option value="all">All</option>
-                            <option value="idea">Ideas</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="filmed">Filmed</option>
-                            <option value="edited">Edited</option>
-                            <option value="posted">Posted</option>
-                        </select>
-                        <input type="text" id="searchFilter" placeholder="Search...">
-                    </div>
-                    <div id="libraryList" class="library-list">
-                        <div class="empty-state">No content yet. Add your first idea!</div>
-                    </div>
-                </section>
+                </div>
+                <div class="library-filters">
+                    <select id="sortFilter">
+                        <option value="priority">Priority</option>
+                        <option value="due-date">Due Date</option>
+                        <option value="status">By Status</option>
+                        <option value="newest">Newest</option>
+                        <option value="performance">Performance</option>
+                    </select>
+                    <select id="statusFilter">
+                        <option value="all">All</option>
+                        <option value="idea">Ideas</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="filmed">Filmed</option>
+                        <option value="edited">Edited</option>
+                        <option value="posted">Posted</option>
+                    </select>
+                    <input type="text" id="searchFilter" placeholder="Search...">
+                </div>
+                <div id="libraryList" class="library-list">
+                    <div class="empty-state">No content yet. Add your first idea!</div>
+                </div>
+            </section>
 
-                <div class="flow-arrow-col">›</div>
-
-                <!-- 2: AI Generator -->
-                <section class="panel generator-panel">
-                    <h2>Caption Generator <span class="ai-badge">AI-enabled</span></h2>
-                    <div id="selectedContext" class="selected-context hidden">
-                        <span class="context-label">Using:</span>
-                        <span id="contextTitle" class="context-title"></span>
-                        <button id="clearContext" class="clear-context-btn">×</button>
+            <!-- Right: Detail Panel -->
+            <div class="detail-panel panel" id="detailPanel">
+                <div class="detail-empty-state" id="detailEmptyState">
+                    <span class="detail-empty-icon">🌱</span>
+                    <p>Select an item from your library</p>
+                </div>
+                <div class="detail-body hidden" id="detailBody">
+                    <div class="detail-item-header">
+                        <span class="detail-growth-icon" id="detailGrowthIcon"></span>
+                        <div class="detail-item-info">
+                            <h3 id="detailTitle"></h3>
+                            <div class="detail-item-meta" id="detailMeta"></div>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" id="detailEditBtn">Edit ✏️</button>
                     </div>
-                    <div class="ai-form">
-                        <div class="form-group">
-                            <label for="aiSummary">Content Summary</label>
-                            <textarea id="aiSummary" placeholder="Select an item from the library, or describe your idea..." rows="3"></textarea>
+                    <div class="detail-field-section">
+                        <div class="detail-field-header">
+                            <label>Caption <span class="ai-badge">AI-enabled</span></label>
+                            <button class="btn btn-sm btn-secondary" id="detailGenerateBtn"><span class="icon">✨</span> Generate</button>
                         </div>
-                        <button id="generateBtn" class="btn btn-primary">
-                            <span class="icon">✨</span> Generate
-                        </button>
-                        <div id="aiResults" class="ai-results hidden">
-                            <div class="result-group">
-                                <label>Header <span class="editable-hint">— click to edit</span></label>
-                                <div class="result-content result-editable" id="generatedHeader" contenteditable="true" spellcheck="true"></div>
-                                <button class="btn-copy" data-target="generatedHeader">Copy</button>
-                            </div>
-                            <div class="result-group">
-                                <label>Caption <span class="editable-hint">— click to edit</span></label>
-                                <div class="result-content result-editable" id="generatedCaption" contenteditable="true" spellcheck="true"></div>
-                                <button class="btn-copy" data-target="generatedCaption">Copy</button>
-                            </div>
-                            <div class="result-group">
-                                <label>Hashtags <span class="editable-hint">— click to edit</span></label>
-                                <div class="result-content hashtags result-editable" id="generatedHashtags" contenteditable="true" spellcheck="false"></div>
-                                <button class="btn-copy" data-target="generatedHashtags">Copy</button>
-                            </div>
-                            <div class="result-actions">
-                                <button id="useGeneratedBtn" class="btn btn-secondary">Save to Item</button>
-                                <button id="sendToPublishBtn" class="btn btn-primary">Send to Publish →</button>
-                            </div>
-                        </div>
+                        <div class="detail-editable" id="detailCaption" contenteditable="true" spellcheck="true" data-placeholder="No caption yet — click Generate or type here"></div>
                     </div>
-                </section>
-
-                <div class="flow-arrow-col">›</div>
-
-                <!-- 3: Publish -->
-                <section class="panel publish-panel">
-                    <h2>Publish</h2>
-                    <div id="publishEmpty" class="publish-empty-state">
-                        <p>Generate content and hit<br><strong>Send to Publish →</strong></p>
+                    <div class="detail-field-section">
+                        <label>Hashtags</label>
+                        <div class="detail-editable hashtags" id="detailHashtags" contenteditable="true" spellcheck="false" data-placeholder="No hashtags yet"></div>
                     </div>
-                    <div id="publishReady" class="hidden">
-                        <div class="publish-copy-group">
-                            <label>Caption</label>
-                            <div class="publish-text" id="publishCaption"></div>
-                            <button class="btn btn-secondary publish-copy-btn" id="copyPublishCaption">Copy Caption</button>
-                        </div>
-                        <div class="publish-copy-group">
-                            <label>Hashtags</label>
-                            <div class="publish-text hashtags" id="publishHashtags"></div>
-                            <button class="btn btn-secondary publish-copy-btn" id="copyPublishHashtags">Copy Hashtags</button>
-                        </div>
+                    <div class="detail-action-row">
+                        <button class="btn btn-secondary" id="detailSaveBtn">Save</button>
+                        <button class="btn btn-primary" id="detailPublishBtn">Publish →</button>
+                    </div>
+                    <div class="detail-publish-section hidden" id="detailPublishSection">
                         <div class="publish-launchers">
                             <a href="https://www.tiktok.com/upload" target="_blank" class="btn-launch tiktok-launch">🎵 Open TikTok ↗</a>
                             <a href="https://www.instagram.com" target="_blank" class="btn-launch instagram-launch">📸 Open Instagram ↗</a>
@@ -263,9 +225,9 @@
                             <label class="check-item"><input type="checkbox" class="pub-check"> Link saved back to library</label>
                         </div>
                     </div>
-                </section>
-
+                </div>
             </div>
+
         </div>
 
         <!-- Analytics -->

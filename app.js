@@ -61,24 +61,11 @@ const App = {
         document.getElementById('closeViewBtn').addEventListener('click', () => this.closeViewModal());
         document.getElementById('editFromView').addEventListener('click', () => this.editFromView());
 
-        // AI Generation
-        document.getElementById('generateBtn').addEventListener('click', () => this.generateContent());
-        document.getElementById('useGeneratedBtn').addEventListener('click', () => this.useGeneratedContent());
-
-        // Copy buttons (generator)
-        document.querySelectorAll('.btn-copy').forEach(btn => {
-            btn.addEventListener('click', (e) => this.copyToClipboard(e.target.dataset.target));
-        });
-
-        // Library context clear
-        document.getElementById('clearContext').addEventListener('click', () => this.clearLibrarySelection());
-
-        // Send to publish
-        document.getElementById('sendToPublishBtn').addEventListener('click', () => this.sendToPublish());
-
-        // Publish copy buttons
-        document.getElementById('copyPublishCaption').addEventListener('click', () => this.copyPublishText('publishCaption'));
-        document.getElementById('copyPublishHashtags').addEventListener('click', () => this.copyPublishText('publishHashtags'));
+        // Detail panel
+        document.getElementById('detailGenerateBtn').addEventListener('click', () => this.generateForDetail());
+        document.getElementById('detailSaveBtn').addEventListener('click', () => this.saveDetailToItem());
+        document.getElementById('detailPublishBtn').addEventListener('click', () => this.publishFromDetail());
+        document.getElementById('detailEditBtn').addEventListener('click', () => this.openEditModal(this.selectedLibraryId));
 
         // Filters + sort
         document.getElementById('sortFilter').addEventListener('change', () => this.renderContent());
@@ -376,71 +363,12 @@ const App = {
     },
 
     /**
-     * Generate AI content
-     */
-    async generateContent() {
-        const summary = document.getElementById('aiSummary').value;
-
-        if (!summary.trim()) {
-            this.showToast('Please enter a content summary', 'error');
-            return;
-        }
-
-        const btn = document.getElementById('generateBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="icon">⏳</span> Generating...';
-
-        try {
-            const result = await AIGenerator.generate(summary);
-
-            document.getElementById('generatedHeader').textContent = result.header;
-            document.getElementById('generatedCaption').textContent = result.caption;
-            document.getElementById('generatedHashtags').textContent = AIGenerator.formatHashtags(result.hashtags);
-
-            document.getElementById('aiResults').classList.remove('hidden');
-            this.showToast('Content generated!', 'success');
-        } catch (error) {
-            this.showToast('Generation failed: ' + error.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<span class="icon">✨</span> Generate Content';
-        }
-    },
-
-    /**
-     * Save generated content — into selected library item if one is active, else open new modal
-     */
-    useGeneratedContent() {
-        const header = document.getElementById('generatedHeader').textContent;
-        const caption = document.getElementById('generatedCaption').textContent;
-        const hashtags = document.getElementById('generatedHashtags').textContent;
-        const summary = document.getElementById('aiSummary').value;
-
-        if (this.selectedLibraryId) {
-            // Pre-fill edit modal for the selected item
-            this.openEditModal(this.selectedLibraryId);
-            document.getElementById('contentHeader').value = header;
-            document.getElementById('contentCaption').value = caption;
-            document.getElementById('contentHashtags').value = hashtags;
-            this.showToast('Generated content loaded into item — save to keep it', 'success');
-        } else {
-            this.openAddModal();
-            document.getElementById('contentSummary').value = summary;
-            document.getElementById('contentHeader').value = header;
-            document.getElementById('contentCaption').value = caption;
-            document.getElementById('contentHashtags').value = hashtags;
-        }
-    },
-
-    /**
      * Copy text to clipboard
      */
-    async copyToClipboard(targetId) {
-        const text = document.getElementById(targetId).textContent;
-
+    async copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
-            this.showToast('Copied to clipboard!', 'success');
+            this.showToast('Copied!', 'success');
         } catch (error) {
             this.showToast('Failed to copy', 'error');
         }
@@ -533,70 +461,124 @@ const App = {
     },
 
     /**
-     * Select a library item to use as AI generator context
+     * Select a library item — opens it in the detail panel
      */
     selectLibraryItem(id) {
         const item = this.content.find(c => c.id === id);
         if (!item) return;
-
         this.selectedLibraryId = id;
         this.renderContent();
-
-        // Pre-fill generator
-        const summary = [item.summary, item.title].filter(Boolean).join(' — ');
-        document.getElementById('aiSummary').value = summary;
-        document.getElementById('contextTitle').textContent = item.title;
-        document.getElementById('selectedContext').classList.remove('hidden');
-
-        // Clear old results so they regenerate fresh
-        document.getElementById('aiResults').classList.add('hidden');
+        this.loadDetailPanel(item);
     },
 
     /**
-     * Clear library selection
+     * Clear library selection — hides detail panel
      */
     clearLibrarySelection() {
         this.selectedLibraryId = null;
         this.renderContent();
-        document.getElementById('selectedContext').classList.add('hidden');
-        document.getElementById('aiSummary').value = '';
+        document.getElementById('detailEmptyState').classList.remove('hidden');
+        document.getElementById('detailBody').classList.add('hidden');
     },
 
     /**
-     * Send generated content to the publish panel
+     * Populate the detail panel with an item's data
      */
-    sendToPublish() {
-        const caption = document.getElementById('generatedCaption').textContent;
-        const hashtags = document.getElementById('generatedHashtags').textContent;
+    loadDetailPanel(item) {
+        const growthIcons = { idea: '🌰', 'in-progress': '🌱', filmed: '🌿', edited: '🌿', posted: '🥕' };
+        document.getElementById('detailGrowthIcon').textContent = growthIcons[item.status] || '🌰';
+        document.getElementById('detailTitle').textContent = item.title;
+
+        const meta = [];
+        meta.push(`<span class="status-badge ${item.status}">${item.status.replace('-', ' ')}</span>`);
+        if (item.category) meta.push(`<span class="library-card-type">${this.escapeHtml(item.category)}</span>`);
+        if (item.dueDate) meta.push(`<span class="library-card-due">${this.formatDate(item.dueDate)}</span>`);
+        document.getElementById('detailMeta').innerHTML = meta.join('');
+
+        document.getElementById('detailCaption').textContent = item.caption || '';
+        document.getElementById('detailHashtags').textContent = item.hashtags || '';
+
+        // Reset publish section on item change
+        document.getElementById('detailPublishSection').classList.add('hidden');
+        document.querySelectorAll('#detailPublishSection .pub-check').forEach(cb => { cb.checked = false; });
+
+        document.getElementById('detailEmptyState').classList.add('hidden');
+        document.getElementById('detailBody').classList.remove('hidden');
+    },
+
+    /**
+     * Generate caption/hashtags for the selected item using AI
+     */
+    async generateForDetail() {
+        const item = this.content.find(c => c.id === this.selectedLibraryId);
+        if (!item) return;
+
+        const summary = [item.summary, item.title].filter(Boolean).join(' — ');
+        const btn = document.getElementById('detailGenerateBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="icon">⏳</span> Generating...';
+
+        try {
+            const result = await AIGenerator.generate(summary);
+            document.getElementById('detailCaption').textContent = result.caption;
+            document.getElementById('detailHashtags').textContent = AIGenerator.formatHashtags(result.hashtags);
+            this.showToast('Caption generated — edit and save!', 'success');
+        } catch (error) {
+            this.showToast('Generation failed: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="icon">✨</span> Generate';
+        }
+    },
+
+    /**
+     * Save caption + hashtags from detail panel back to the item
+     */
+    async saveDetailToItem() {
+        if (!this.selectedLibraryId) return;
+
+        const caption = document.getElementById('detailCaption').textContent.trim();
+        const hashtags = document.getElementById('detailHashtags').textContent.trim();
+
+        try {
+            this.showLoading('Saving...');
+            const response = await fetch(`/api/content/${this.selectedLibraryId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ caption, hashtags }),
+            });
+            const updated = await response.json();
+            const index = this.content.findIndex(c => c.id === this.selectedLibraryId);
+            if (index !== -1) this.content[index] = updated;
+            this.hideLoading();
+            this.showToast('Saved!', 'success');
+            this.renderContent();
+        } catch (error) {
+            this.hideLoading();
+            this.showToast('Error saving: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * Reveal the publish section in the detail panel
+     */
+    publishFromDetail() {
+        if (!this.selectedLibraryId) return;
+
+        const caption = document.getElementById('detailCaption').textContent.trim();
+        const hashtags = document.getElementById('detailHashtags').textContent.trim();
 
         if (!caption && !hashtags) {
-            this.showToast('Nothing generated yet', 'error');
+            this.showToast('Add a caption before publishing', 'error');
             return;
         }
 
-        document.getElementById('publishCaption').textContent = caption;
-        document.getElementById('publishHashtags').textContent = hashtags;
-        document.getElementById('publishEmpty').classList.add('hidden');
-        document.getElementById('publishReady').classList.remove('hidden');
-
-        // Reset checklist
-        document.querySelectorAll('.pub-check').forEach(cb => { cb.checked = false; });
-
-        this.showToast('Content sent to Publish panel!', 'success');
+        document.getElementById('detailPublishSection').classList.remove('hidden');
+        document.querySelectorAll('#detailPublishSection .pub-check').forEach(cb => { cb.checked = false; });
+        document.getElementById('detailPublishSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        this.showToast('Ready to publish!', 'success');
     },
 
-    /**
-     * Copy text from publish panel
-     */
-    async copyPublishText(elementId) {
-        const text = document.getElementById(elementId).textContent;
-        try {
-            await navigator.clipboard.writeText(text);
-            this.showToast('Copied!', 'success');
-        } catch {
-            this.showToast('Copy failed', 'error');
-        }
-    },
 
     /**
      * Update reminders panel (Phase 5: progress ring + due-soon list)
