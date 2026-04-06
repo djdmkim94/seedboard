@@ -61,24 +61,29 @@ const App = {
         document.getElementById('closeViewBtn').addEventListener('click', () => this.closeViewModal());
         document.getElementById('editFromView').addEventListener('click', () => this.editFromView());
 
-        // AI Generation
-        document.getElementById('generateBtn').addEventListener('click', () => this.generateContent());
-        document.getElementById('useGeneratedBtn').addEventListener('click', () => this.useGeneratedContent());
+        // API key modal
+        document.getElementById('apiKeySaveBtn').addEventListener('click', () => this.saveApiKey());
+        document.getElementById('apiKeyClearBtn').addEventListener('click', () => this.clearApiKey());
+        document.getElementById('apiKeyCancelBtn').addEventListener('click', () => this.hideApiKeyModal());
+        document.getElementById('closeApiKeyModal').addEventListener('click', () => this.hideApiKeyModal());
 
-        // Copy buttons (generator)
-        document.querySelectorAll('.btn-copy').forEach(btn => {
-            btn.addEventListener('click', (e) => this.copyToClipboard(e.target.dataset.target));
+        // Detail panel
+        document.getElementById('detailGenerateBtn').addEventListener('click', () => this.generateForDetail());
+        document.getElementById('detailSaveBtn').addEventListener('click', () => this.saveDetailToItem());
+        document.getElementById('detailPublishBtn').addEventListener('click', () => this.publishFromDetail());
+        document.getElementById('detailEditBtn').addEventListener('click', () => this.openEditModal(this.selectedLibraryId));
+        document.getElementById('detailCopyCaptionBtn').addEventListener('click', () => this.copyToClipboard(document.getElementById('detailCaption').textContent.trim()));
+        document.getElementById('detailCopyHashtagsBtn').addEventListener('click', () => this.copyToClipboard(document.getElementById('detailHashtags').textContent.trim()));
+
+        // Enforce 5-hashtag limit on blur
+        document.getElementById('detailHashtags').addEventListener('blur', () => {
+            const el = document.getElementById('detailHashtags');
+            const tags = el.textContent.trim().split(/\s+/).filter(t => t.length > 0);
+            if (tags.length > 5) {
+                el.textContent = tags.slice(0, 5).join(' ');
+                this.showToast('Max 5 hashtags — trimmed to 5', 'error');
+            }
         });
-
-        // Library context clear
-        document.getElementById('clearContext').addEventListener('click', () => this.clearLibrarySelection());
-
-        // Send to publish
-        document.getElementById('sendToPublishBtn').addEventListener('click', () => this.sendToPublish());
-
-        // Publish copy buttons
-        document.getElementById('copyPublishCaption').addEventListener('click', () => this.copyPublishText('publishCaption'));
-        document.getElementById('copyPublishHashtags').addEventListener('click', () => this.copyPublishText('publishHashtags'));
 
         // Filters + sort
         document.getElementById('sortFilter').addEventListener('change', () => this.renderContent());
@@ -199,7 +204,6 @@ const App = {
         document.getElementById('contentId').value = item.id;
         document.getElementById('contentTitle').value = item.title;
         document.getElementById('contentSummary').value = item.summary;
-        document.getElementById('contentHeader').value = item.header;
         document.getElementById('contentCaption').value = item.caption;
         document.getElementById('contentHashtags').value = item.hashtags;
         document.getElementById('contentStatus').value = item.status;
@@ -297,7 +301,6 @@ const App = {
         const formData = {
             title: document.getElementById('contentTitle').value,
             summary: document.getElementById('contentSummary').value,
-            header: document.getElementById('contentHeader').value,
             caption: document.getElementById('contentCaption').value,
             hashtags: document.getElementById('contentHashtags').value,
             category: document.getElementById('contentCategory').value,
@@ -376,71 +379,12 @@ const App = {
     },
 
     /**
-     * Generate AI content
-     */
-    async generateContent() {
-        const summary = document.getElementById('aiSummary').value;
-
-        if (!summary.trim()) {
-            this.showToast('Please enter a content summary', 'error');
-            return;
-        }
-
-        const btn = document.getElementById('generateBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="icon">⏳</span> Generating...';
-
-        try {
-            const result = await AIGenerator.generate(summary);
-
-            document.getElementById('generatedHeader').textContent = result.header;
-            document.getElementById('generatedCaption').textContent = result.caption;
-            document.getElementById('generatedHashtags').textContent = AIGenerator.formatHashtags(result.hashtags);
-
-            document.getElementById('aiResults').classList.remove('hidden');
-            this.showToast('Content generated!', 'success');
-        } catch (error) {
-            this.showToast('Generation failed: ' + error.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<span class="icon">✨</span> Generate Content';
-        }
-    },
-
-    /**
-     * Save generated content — into selected library item if one is active, else open new modal
-     */
-    useGeneratedContent() {
-        const header = document.getElementById('generatedHeader').textContent;
-        const caption = document.getElementById('generatedCaption').textContent;
-        const hashtags = document.getElementById('generatedHashtags').textContent;
-        const summary = document.getElementById('aiSummary').value;
-
-        if (this.selectedLibraryId) {
-            // Pre-fill edit modal for the selected item
-            this.openEditModal(this.selectedLibraryId);
-            document.getElementById('contentHeader').value = header;
-            document.getElementById('contentCaption').value = caption;
-            document.getElementById('contentHashtags').value = hashtags;
-            this.showToast('Generated content loaded into item — save to keep it', 'success');
-        } else {
-            this.openAddModal();
-            document.getElementById('contentSummary').value = summary;
-            document.getElementById('contentHeader').value = header;
-            document.getElementById('contentCaption').value = caption;
-            document.getElementById('contentHashtags').value = hashtags;
-        }
-    },
-
-    /**
      * Copy text to clipboard
      */
-    async copyToClipboard(targetId) {
-        const text = document.getElementById(targetId).textContent;
-
+    async copyToClipboard(text) {
         try {
             await navigator.clipboard.writeText(text);
-            this.showToast('Copied to clipboard!', 'success');
+            this.showToast('Copied!', 'success');
         } catch (error) {
             this.showToast('Failed to copy', 'error');
         }
@@ -533,70 +477,167 @@ const App = {
     },
 
     /**
-     * Select a library item to use as AI generator context
+     * Select a library item — opens it in the detail panel
      */
     selectLibraryItem(id) {
         const item = this.content.find(c => c.id === id);
         if (!item) return;
-
         this.selectedLibraryId = id;
         this.renderContent();
-
-        // Pre-fill generator
-        const summary = [item.summary, item.title].filter(Boolean).join(' — ');
-        document.getElementById('aiSummary').value = summary;
-        document.getElementById('contextTitle').textContent = item.title;
-        document.getElementById('selectedContext').classList.remove('hidden');
-
-        // Clear old results so they regenerate fresh
-        document.getElementById('aiResults').classList.add('hidden');
+        this.loadDetailPanel(item);
     },
 
     /**
-     * Clear library selection
+     * Clear library selection — hides detail panel
      */
     clearLibrarySelection() {
         this.selectedLibraryId = null;
         this.renderContent();
-        document.getElementById('selectedContext').classList.add('hidden');
-        document.getElementById('aiSummary').value = '';
+        document.getElementById('detailEmptyState').classList.remove('hidden');
+        document.getElementById('detailBody').classList.add('hidden');
     },
 
     /**
-     * Send generated content to the publish panel
+     * Populate the detail panel with an item's data
      */
-    sendToPublish() {
-        const caption = document.getElementById('generatedCaption').textContent;
-        const hashtags = document.getElementById('generatedHashtags').textContent;
+    loadDetailPanel(item) {
+        const growthIcons = { idea: '🌰', 'in-progress': '🌱', filmed: '🌿', edited: '🌿', posted: '🥕' };
+        document.getElementById('detailGrowthIcon').textContent = growthIcons[item.status] || '🌰';
+        document.getElementById('detailTitle').textContent = item.title;
 
-        if (!caption && !hashtags) {
-            this.showToast('Nothing generated yet', 'error');
+        const meta = [];
+        meta.push(`<span class="status-badge ${item.status}">${item.status.replace('-', ' ')}</span>`);
+        if (item.category) meta.push(`<span class="library-card-type">${this.escapeHtml(item.category)}</span>`);
+        if (item.dueDate) meta.push(`<span class="library-card-due">${this.formatDate(item.dueDate)}</span>`);
+        document.getElementById('detailMeta').innerHTML = meta.join('');
+
+        document.getElementById('detailCaption').textContent = item.caption || '';
+        document.getElementById('detailHashtags').textContent = item.hashtags || '';
+
+        // Reset publish section on item change
+        document.getElementById('detailPublishSection').classList.add('hidden');
+        document.querySelectorAll('#detailPublishSection .pub-check').forEach(cb => { cb.checked = false; });
+
+        document.getElementById('detailEmptyState').classList.add('hidden');
+        document.getElementById('detailBody').classList.remove('hidden');
+    },
+
+    /**
+     * Generate caption/hashtags for the selected item using AI
+     */
+    async generateForDetail() {
+        const item = this.content.find(c => c.id === this.selectedLibraryId);
+        if (!item) return;
+
+        // Check for API key first
+        if (!AIGenerator.hasApiKey()) {
+            this.showApiKeyModal();
             return;
         }
 
-        document.getElementById('publishCaption').textContent = caption;
-        document.getElementById('publishHashtags').textContent = hashtags;
-        document.getElementById('publishEmpty').classList.add('hidden');
-        document.getElementById('publishReady').classList.remove('hidden');
+        const summary = [item.summary, item.title].filter(Boolean).join(' — ');
+        const btn = document.getElementById('detailGenerateBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="icon">⏳</span> Generating...';
 
-        // Reset checklist
-        document.querySelectorAll('.pub-check').forEach(cb => { cb.checked = false; });
+        try {
+            const result = await AIGenerator.generate(summary);
+            document.getElementById('detailCaption').textContent = result.caption;
+            document.getElementById('detailHashtags').textContent = AIGenerator.formatHashtags(result.hashtags);
+            this.showToast('Caption generated — edit and save!', 'success');
+        } catch (error) {
+            if (error.message === 'API_KEY_REQUIRED') {
+                this.showApiKeyModal();
+            } else {
+                this.showToast('Generation failed: ' + error.message, 'error');
+            }
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="icon">✨</span> Generate';
+        }
+    },
 
-        this.showToast('Content sent to Publish panel!', 'success');
+    showApiKeyModal() {
+        const modal = document.getElementById('apiKeyModal');
+        const input = document.getElementById('apiKeyInput');
+        input.value = AIGenerator.getApiKey();
+        modal.classList.remove('hidden');
+    },
+
+    hideApiKeyModal() {
+        document.getElementById('apiKeyModal').classList.add('hidden');
+    },
+
+    saveApiKey() {
+        const input = document.getElementById('apiKeyInput');
+        const key = input.value.trim();
+        if (!key) {
+            this.showToast('Please enter an API key', 'error');
+            return;
+        }
+        AIGenerator.setApiKey(key);
+        this.hideApiKeyModal();
+        this.showToast('API key saved', 'success');
+    },
+
+    clearApiKey() {
+        AIGenerator.setApiKey(null);
+        document.getElementById('apiKeyInput').value = '';
+        this.showToast('API key removed', 'success');
     },
 
     /**
-     * Copy text from publish panel
+     * Save caption + hashtags from detail panel back to the item
      */
-    async copyPublishText(elementId) {
-        const text = document.getElementById(elementId).textContent;
+    async saveDetailToItem() {
+        if (!this.selectedLibraryId) return;
+
+        const caption = document.getElementById('detailCaption').textContent.trim();
+        const hashtags = document.getElementById('detailHashtags').textContent.trim();
+
         try {
-            await navigator.clipboard.writeText(text);
-            this.showToast('Copied!', 'success');
-        } catch {
-            this.showToast('Copy failed', 'error');
+            this.showLoading('Saving...');
+            const response = await fetch(`/api/content/${this.selectedLibraryId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ caption, hashtags }),
+            });
+            const updated = await response.json();
+            const index = this.content.findIndex(c => c.id === this.selectedLibraryId);
+            if (index !== -1) this.content[index] = updated;
+            this.hideLoading();
+            this.showToast('Saved!', 'success');
+            this.renderContent();
+        } catch (error) {
+            this.hideLoading();
+            this.showToast('Error saving: ' + error.message, 'error');
         }
     },
+
+    /**
+     * Reveal the publish section in the detail panel
+     */
+    publishFromDetail() {
+        if (!this.selectedLibraryId) return;
+
+        const caption = document.getElementById('detailCaption').textContent.trim();
+        const hashtags = document.getElementById('detailHashtags').textContent.trim();
+
+        if (!caption && !hashtags) {
+            this.showToast('Add a caption before publishing', 'error');
+            return;
+        }
+
+        document.getElementById('publishCaptionText').textContent = caption;
+        document.getElementById('publishHashtagsText').textContent = hashtags;
+        document.getElementById('publishCopyCaptionBtn').onclick = () =>
+            this.copyToClipboard([caption, hashtags].filter(Boolean).join('\n'));
+        document.getElementById('detailPublishSection').classList.remove('hidden');
+        document.querySelectorAll('#detailPublishSection .pub-check').forEach(cb => { cb.checked = false; });
+        document.getElementById('detailPublishSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        this.showToast('Ready to publish!', 'success');
+    },
+
 
     /**
      * Update reminders panel (Phase 5: progress ring + due-soon list)
@@ -929,12 +970,13 @@ const App = {
         const grid = document.getElementById('gardenGrid');
         if (!grid) return;
 
-        const stageClass = {
-            idea: 'seed',
-            'in-progress': 'sprout',
-            filmed: 'plant',
-            edited: 'plant',
-            posted: 'harvest',
+        const harvestCrop = localStorage.getItem('seedboard-crop') || '🥕';
+        const stageEmoji = {
+            idea:          '🌰',
+            'in-progress': '🌱',
+            filmed:        '🌿',
+            edited:        '🌿',
+            posted:        harvestCrop,
         };
 
         const filtered = filter === 'all'
@@ -947,10 +989,10 @@ const App = {
             });
 
         const cards = filtered.map(item => {
-            const art = stageClass[item.status] || 'seed';
+            const emoji = stageEmoji[item.status] || '🌰';
             return `
                 <div class="plant-card ${item.status}" onclick="App.openViewModal('${item.id}')">
-                    <div class="plant-art ${art}"></div>
+                    <div class="plant-art"><span class="plant-emoji">${emoji}</span></div>
                     <div class="plant-card-title">${this.escapeHtml(item.title)}</div>
                     <div class="plant-card-status">${item.status.replace('-', ' ')}</div>
                 </div>`;
@@ -988,13 +1030,51 @@ const App = {
         const crop = active.dataset.crop;
         localStorage.setItem('seedboard-crop', crop);
         document.getElementById('avatarCrop').textContent = crop;
+        this.applyTheme(crop);
         this.closeCropPicker();
         this.showToast('Crop updated!', 'success');
     },
 
+    // ── Crop themes — each crop maps to a full warm/japandi color palette ──
+    cropThemes: {
+        '🥕': { primary: '#eb7c0d', light: '#f49325', glow: 'rgba(235,124,13,0.15)', bodyGlow: 'rgba(235,124,13,0.04)' },
+        '🌶️': { primary: '#c43028', light: '#d44038', glow: 'rgba(196,48,40,0.15)',  bodyGlow: 'rgba(196,48,40,0.04)'  },
+        '🍊': { primary: '#d07818', light: '#e08c28', glow: 'rgba(208,120,24,0.15)', bodyGlow: 'rgba(208,120,24,0.04)' },
+        '🌽': { primary: '#a89010', light: '#c4aa20', glow: 'rgba(168,144,16,0.15)', bodyGlow: 'rgba(168,144,16,0.04)' },
+        '🥬': { primary: '#4e7840', light: '#629654', glow: 'rgba(78,120,64,0.15)',  bodyGlow: 'rgba(78,120,64,0.04)'  },
+        '🫐': { primary: '#3d4e8a', light: '#5060a4', glow: 'rgba(61,78,138,0.15)',  bodyGlow: 'rgba(61,78,138,0.04)'  },
+        '🍆': { primary: '#663278', light: '#804090', glow: 'rgba(102,50,120,0.15)', bodyGlow: 'rgba(102,50,120,0.04)' },
+    },
+
+    applyTheme(crop) {
+        const t = this.cropThemes[crop] || this.cropThemes['🥕'];
+        const root = document.documentElement;
+
+        // Core accent vars — everything using var(--orange-primary) etc. updates automatically
+        root.style.setProperty('--orange-primary',    t.primary);
+        root.style.setProperty('--orange-light',      t.light);
+        root.style.setProperty('--orange-glow',       t.glow);
+        root.style.setProperty('--accent-primary',    t.primary);
+        root.style.setProperty('--accent-gradient',   `linear-gradient(135deg, ${t.primary}, ${t.light})`);
+        root.style.setProperty('--theme-body-glow',   t.bodyGlow);
+
+        // SVG ring gradient inside This Week panel
+        const stop0 = document.querySelector('#ringGrad stop:first-child');
+        const stop1 = document.querySelector('#ringGrad stop:last-child');
+        const glow  = document.querySelector('#ringGlow feDropShadow');
+        if (stop0) stop0.setAttribute('stop-color', t.primary);
+        if (stop1) stop1.setAttribute('stop-color', t.light);
+        if (glow)  glow.setAttribute('flood-color', t.glow);
+
+        // Re-render garden so harvest icons update immediately
+        const activeFilter = document.querySelector('.garden-filter.active')?.dataset.filter || 'all';
+        this.renderGarden(activeFilter);
+    },
+
     restoreCrop() {
-        const saved = localStorage.getItem('seedboard-crop');
-        if (saved) document.getElementById('avatarCrop').textContent = saved;
+        const saved = localStorage.getItem('seedboard-crop') || '🥕';
+        document.getElementById('avatarCrop').textContent = saved;
+        this.applyTheme(saved);
     },
 
     // ─────────────────────────────────────────────────────────────────
@@ -1018,12 +1098,16 @@ const App = {
         document.getElementById('csvStep2').classList.toggle('hidden', n !== 2);
     },
 
-    /** Parse CSV text into array of objects keyed by header row */
+    /** Parse CSV/TSV text into array of objects keyed by header row */
     csvParse(text) {
         const lines = text.trim().split(/\r?\n/);
         if (lines.length < 2) return [];
 
+        // Auto-detect delimiter: tab (TikTok .txt) vs comma
+        const delim = lines[0].includes('\t') ? '\t' : ',';
+
         const parseLine = (line) => {
+            if (delim === '\t') return line.split('\t').map(f => f.replace(/^"|"$/g, '').trim());
             const fields = [];
             let cur = '', inQ = false;
             for (let i = 0; i < line.length; i++) {
@@ -1045,6 +1129,47 @@ const App = {
                 headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, '').trim(); });
                 return obj;
             });
+    },
+
+    /** Parse TikTok JSON export into flat row objects matching our CSV column names */
+    csvParseJson(text) {
+        let data;
+        try { data = JSON.parse(text); } catch { return []; }
+
+        // TikTok Creator Portal JSON shapes we've seen:
+        //   { "data": { "videos": [...] } }
+        //   { "Video": [...] }
+        //   [ {...}, {...} ]  (bare array)
+        let videos = null;
+        if (Array.isArray(data)) {
+            videos = data;
+        } else if (data.data?.videos) {
+            videos = data.data.videos;
+        } else if (data.data?.Video) {
+            videos = data.data.Video;
+        } else if (data.Video) {
+            videos = data.Video;
+        } else if (data.videos) {
+            videos = data.videos;
+        }
+        if (!videos || !videos.length) return [];
+
+        return videos.map(v => {
+            const stats = v.stats || v.statistics || {};
+            const date = v.createTime || v.create_time || v.date || '';
+            const dateStr = date ? new Date(typeof date === 'number' ? date * 1000 : date)
+                .toISOString().split('T')[0] : '';
+            return {
+                'Video Title':   v.title || v.desc || v.description || '',
+                'Video Views':   String(stats.playCount  || stats.play_count  || stats.views   || 0),
+                'Likes':         String(stats.likeCount  || stats.like_count  || stats.likes   || 0),
+                'Comments':      String(stats.commentCount || stats.comment_count || stats.comments || 0),
+                'Shares':        String(stats.shareCount || stats.share_count || stats.shares  || 0),
+                'Create Time':   dateStr,
+                'Share URL':     v.shareUrl || v.share_url || v.webVideoUrl || v.url || '',
+                'Hashtags':      Array.isArray(v.hashtags) ? v.hashtags.join(' ') : (v.hashtags || ''),
+            };
+        }).filter(r => r['Video Title'] || parseInt(r['Video Views']));
     },
 
     /** Map raw CSV column names to Seedboard field names */
@@ -1084,7 +1209,10 @@ const App = {
     csvReadFile(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            const rows = this.csvParse(e.target.result);
+            const isJson = file.name.toLowerCase().endsWith('.json');
+            const rows = isJson
+                ? this.csvParseJson(e.target.result)
+                : this.csvParse(e.target.result);
             if (rows.length === 0) {
                 this.showToast('No data rows found in file', 'error');
                 return;

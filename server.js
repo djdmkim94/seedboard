@@ -132,18 +132,20 @@ app.delete('/api/content/:id', (req, res) => {
  * Returns: { header: string, caption: string, hashtags: string[] }
  */
 app.post('/api/generate', async (req, res) => {
-    const { summary } = req.body;
+    const { summary, apiKey } = req.body;
 
     if (!summary || typeof summary !== 'string') {
         return res.status(400).json({ error: 'Summary is required' });
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-        return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+    const key = apiKey || process.env.ANTHROPIC_API_KEY;
+    if (!key) {
+        return res.status(401).json({ error: 'API key required. Please enter your Anthropic API key.' });
     }
 
     try {
-        const message = await anthropic.messages.create({
+        const client = apiKey ? new Anthropic({ apiKey }) : anthropic;
+        const message = await client.messages.create({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 1024,
             messages: [
@@ -170,7 +172,7 @@ Summary: ${summary}
 Please provide:
 1. A short header (max 50 characters)
 2. A caption (MAX 30 words total, each sentence MAX 12 words)
-3. 5-8 relevant hashtags
+3. Exactly 5 hashtags (no more, no less)
 
 Respond in JSON format only:
 {
@@ -202,7 +204,7 @@ Respond in JSON format only:
         res.json({
             header: result.header,
             caption: result.caption,
-            hashtags: result.hashtags,
+            hashtags: result.hashtags.slice(0, 5),
         });
     } catch (error) {
         console.error('AI Generation error:', error);
@@ -384,9 +386,11 @@ app.get('/api/analytics', async (req, res) => {
     let insights = null;
     const withData = stats.filter(s => s.views > 0);
 
-    if (withData.length > 0 && process.env.ANTHROPIC_API_KEY) {
+    const analyticsKey = req.query.apiKey || process.env.ANTHROPIC_API_KEY;
+    if (withData.length > 0 && analyticsKey) {
         try {
-            const message = await anthropic.messages.create({
+            const analyticsClient = req.query.apiKey ? new Anthropic({ apiKey: analyticsKey }) : anthropic;
+            const message = await analyticsClient.messages.create({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 600,
                 messages: [{
@@ -481,10 +485,7 @@ app.post('/api/content/import', (req, res) => {
  * Health check endpoint
  */
 app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        apiConfigured: !!process.env.ANTHROPIC_API_KEY,
-    });
+    res.json({ status: 'ok' });
 });
 
 /**

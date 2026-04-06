@@ -67,7 +67,7 @@
         <div class="carousel-row">
             <section class="insight-carousel" id="insightCarousel">
                 <div class="carousel-header">
-                    <span class="carousel-title">⚡ Weekly Performance Snapshot</span>
+                    <span class="carousel-title">Monthly Progress Report</span>
                     <div class="carousel-controls">
                         <button class="carousel-arrow" id="carouselPrev">‹</button>
                         <button class="carousel-arrow" id="carouselNext">›</button>
@@ -89,162 +89,143 @@
             <!-- This Week -->
             <section class="panel reminders-panel">
                 <h2>This Week</h2>
-                <div id="remindersContent">
+                <div id="remindersContent" class="reminders-content-grid">
 
-                    <!-- Progress Ring -->
-                    <div class="progress-ring-container">
-                        <div class="progress-ring-wrap">
-                            <svg class="progress-ring-svg" viewBox="0 0 160 160" width="140" height="140">
-                                <defs>
-                                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stop-color="#eb7c0d"/>
-                                        <stop offset="100%" stop-color="#f49325"/>
-                                    </linearGradient>
-                                    <filter id="ringGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                        <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="rgba(235,124,13,0.3)"/>
-                                    </filter>
-                                </defs>
-                                <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(252,246,182,0.06)" stroke-width="8"/>
-                                <circle id="ringProgress" cx="80" cy="80" r="68" fill="none"
-                                    stroke="url(#ringGrad)" stroke-width="8" stroke-linecap="round"
-                                    stroke-dasharray="427.26" stroke-dashoffset="427.26"
-                                    transform="rotate(-90 80 80)" filter="url(#ringGlow)"
-                                    style="transition: stroke-dashoffset 0.8s ease"/>
-                            </svg>
-                            <div class="ring-center">
-                                <svg viewBox="0 0 60 72" fill="none" xmlns="http://www.w3.org/2000/svg" width="38" height="46">
-                                    <ellipse cx="26" cy="14" rx="5" ry="10" transform="rotate(-10 26 14)" stroke="#2c5530" stroke-width="3" fill="none"/>
-                                    <ellipse cx="36" cy="12" rx="5" ry="10" transform="rotate(15 36 12)" stroke="#2c5530" stroke-width="3" fill="none"/>
-                                    <path d="M18 24 C18 24, 16 42, 28 62 C28 62, 30 66, 32 62 C44 42, 42 24, 42 24 C42 20, 18 20, 18 24Z" stroke="#eb7c0d" stroke-width="3" fill="rgba(235,124,13,0.06)" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <line x1="22" y1="34" x2="34" y2="34" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
-                                    <line x1="23" y1="42" x2="33" y2="42" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                    <!-- Left: Progress Ring -->
+                    <div class="ring-left">
+                        <div class="progress-ring-container">
+                            <div class="progress-ring-wrap">
+                                <svg class="progress-ring-svg" viewBox="0 0 160 160" width="140" height="140">
+                                    <defs>
+                                        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#eb7c0d"/>
+                                            <stop offset="100%" stop-color="#f49325"/>
+                                        </linearGradient>
+                                        <filter id="ringGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                            <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="rgba(235,124,13,0.3)"/>
+                                        </filter>
+                                    </defs>
+                                    <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(252,246,182,0.06)" stroke-width="8"/>
+                                    <circle id="ringProgress" cx="80" cy="80" r="68" fill="none"
+                                        stroke="url(#ringGrad)" stroke-width="8" stroke-linecap="round"
+                                        stroke-dasharray="427.26" stroke-dashoffset="427.26"
+                                        transform="rotate(-90 80 80)" filter="url(#ringGlow)"
+                                        style="transition: stroke-dashoffset 0.8s ease"/>
                                 </svg>
+                                <div class="ring-center">
+                                    <svg viewBox="0 0 60 72" fill="none" xmlns="http://www.w3.org/2000/svg" width="38" height="46">
+                                        <ellipse cx="26" cy="14" rx="5" ry="10" transform="rotate(-10 26 14)" stroke="#2c5530" stroke-width="3" fill="none"/>
+                                        <ellipse cx="36" cy="12" rx="5" ry="10" transform="rotate(15 36 12)" stroke="#2c5530" stroke-width="3" fill="none"/>
+                                        <path d="M18 24 C18 24, 16 42, 28 62 C28 62, 30 66, 32 62 C44 42, 42 24, 42 24 C42 20, 18 20, 18 24Z" stroke="#eb7c0d" stroke-width="3" fill="rgba(235,124,13,0.06)" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <line x1="22" y1="34" x2="34" y2="34" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                                        <line x1="23" y1="42" x2="33" y2="42" stroke="#eb7c0d" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+                                    </svg>
+                                </div>
                             </div>
+                            <div class="ring-pct" id="ringPct">0%</div>
+                            <div class="ring-label-text">completion rate</div>
                         </div>
-                        <div class="ring-pct" id="ringPct">0%</div>
-                        <div class="ring-label-text">completion rate</div>
+                        <div class="ring-stats-row">
+                            <span class="ring-stat-item"><span class="ring-dot" style="background:var(--orange-primary)"></span><span id="postedCount">0</span> posted</span>
+                            <span class="ring-stat-item"><span class="ring-dot" style="background:var(--green-bright)"></span><span id="inProgressCount">0</span> growing</span>
+                            <span class="ring-stat-item"><span class="ring-dot" style="background:var(--cream-dim)"></span><span id="ideaCount">0</span> seeds</span>
+                        </div>
                     </div>
 
-                    <!-- Status dots -->
-                    <div class="ring-stats-row">
-                        <span class="ring-stat-item"><span class="ring-dot" style="background:var(--orange-primary)"></span><span id="postedCount">0</span> posted</span>
-                        <span class="ring-stat-item"><span class="ring-dot" style="background:var(--green-bright)"></span><span id="inProgressCount">0</span> growing</span>
-                        <span class="ring-stat-item"><span class="ring-dot" style="background:var(--cream-dim)"></span><span id="ideaCount">0</span> seeds</span>
+                    <!-- Vertical divider -->
+                    <div class="ring-col-divider"></div>
+
+                    <!-- Right: Due Soon list -->
+                    <div class="ring-right">
+                        <p class="due-soon-label">Due Soon</p>
+                        <ul id="remindersList" class="reminders-list">
+                            <li class="empty-state">No upcoming deadlines</li>
+                        </ul>
                     </div>
 
-                    <div class="ring-divider"></div>
-                    <p class="due-soon-label">Due Soon</p>
-
-                    <ul id="remindersList" class="reminders-list">
-                        <li class="empty-state">No upcoming deadlines</li>
-                    </ul>
                 </div>
             </section>
         </div>
 
-        <!-- Content Creation Flow -->
-        <div class="task-flow">
-            <div class="flow-header">
-                <div class="flow-step-label"><span class="step-num">1</span> Content Library</div>
-                <div class="flow-connector">›</div>
-                <div class="flow-step-label"><span class="step-num">2</span> Caption Generator</div>
-                <div class="flow-connector">›</div>
-                <div class="flow-step-label"><span class="step-num">3</span> Publish</div>
-            </div>
-            <div class="flow-panels">
+        <!-- Content Workspace (Finder-style) -->
+        <div class="content-workspace">
 
-                <!-- 1: Content Library -->
-                <section class="panel library-panel">
-                    <div class="panel-header">
-                        <h2>Content Library</h2>
-                        <div class="library-header-actions">
-                            <button id="importCsvBtn" class="btn btn-secondary btn-sm" title="Import from TikTok/Instagram CSV export">⬆ Import CSV</button>
-                            <button id="addContentBtn" class="btn btn-primary"><span class="icon">+</span> Add</button>
+            <!-- Left: Content Library -->
+            <section class="panel library-panel">
+                <div class="panel-header">
+                    <h2>Content Library</h2>
+                    <div class="library-header-actions">
+                        <button id="importCsvBtn" class="btn btn-secondary btn-sm" title="Import from TikTok/Instagram export (.csv, .txt, .json)">⬆ Import</button>
+                        <button id="addContentBtn" class="btn btn-primary"><span class="icon">+</span> Add</button>
+                    </div>
+                </div>
+                <div class="library-filters">
+                    <select id="sortFilter">
+                        <option value="priority">Priority</option>
+                        <option value="due-date">Due Date</option>
+                        <option value="status">By Status</option>
+                        <option value="newest">Newest</option>
+                        <option value="performance">Performance</option>
+                    </select>
+                    <select id="statusFilter">
+                        <option value="all">All</option>
+                        <option value="idea">Ideas</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="filmed">Filmed</option>
+                        <option value="edited">Edited</option>
+                        <option value="posted">Posted</option>
+                    </select>
+                    <input type="text" id="searchFilter" placeholder="Search...">
+                </div>
+                <div id="libraryList" class="library-list">
+                    <div class="empty-state">No content yet. Add your first idea!</div>
+                </div>
+            </section>
+
+            <!-- Right: Detail Panel -->
+            <div class="detail-panel panel" id="detailPanel">
+                <div class="detail-empty-state" id="detailEmptyState">
+                    <span class="detail-empty-icon">🌱</span>
+                    <p>Select an item from your library</p>
+                </div>
+                <div class="detail-body hidden" id="detailBody">
+                    <div class="detail-item-header">
+                        <span class="detail-growth-icon" id="detailGrowthIcon"></span>
+                        <div class="detail-item-info">
+                            <h3 id="detailTitle"></h3>
+                            <div class="detail-item-meta" id="detailMeta"></div>
                         </div>
+                        <button class="btn btn-secondary btn-sm" id="detailEditBtn">Edit ✏️</button>
                     </div>
-                    <div class="library-filters">
-                        <select id="sortFilter">
-                            <option value="priority">Priority</option>
-                            <option value="due-date">Due Date</option>
-                            <option value="status">By Status</option>
-                            <option value="newest">Newest</option>
-                            <option value="performance">Performance</option>
-                        </select>
-                        <select id="statusFilter">
-                            <option value="all">All</option>
-                            <option value="idea">Ideas</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="filmed">Filmed</option>
-                            <option value="edited">Edited</option>
-                            <option value="posted">Posted</option>
-                        </select>
-                        <input type="text" id="searchFilter" placeholder="Search...">
-                    </div>
-                    <div id="libraryList" class="library-list">
-                        <div class="empty-state">No content yet. Add your first idea!</div>
-                    </div>
-                </section>
-
-                <div class="flow-arrow-col">›</div>
-
-                <!-- 2: AI Generator -->
-                <section class="panel generator-panel">
-                    <h2>Caption Generator <span class="ai-badge">AI-enabled</span></h2>
-                    <div id="selectedContext" class="selected-context hidden">
-                        <span class="context-label">Using:</span>
-                        <span id="contextTitle" class="context-title"></span>
-                        <button id="clearContext" class="clear-context-btn">×</button>
-                    </div>
-                    <div class="ai-form">
-                        <div class="form-group">
-                            <label for="aiSummary">Content Summary</label>
-                            <textarea id="aiSummary" placeholder="Select an item from the library, or describe your idea..." rows="3"></textarea>
-                        </div>
-                        <button id="generateBtn" class="btn btn-primary">
-                            <span class="icon">✨</span> Generate
-                        </button>
-                        <div id="aiResults" class="ai-results hidden">
-                            <div class="result-group">
-                                <label>Header</label>
-                                <div class="result-content" id="generatedHeader"></div>
-                                <button class="btn-copy" data-target="generatedHeader">Copy</button>
-                            </div>
-                            <div class="result-group">
-                                <label>Caption</label>
-                                <div class="result-content" id="generatedCaption"></div>
-                                <button class="btn-copy" data-target="generatedCaption">Copy</button>
-                            </div>
-                            <div class="result-group">
-                                <label>Hashtags</label>
-                                <div class="result-content hashtags" id="generatedHashtags"></div>
-                                <button class="btn-copy" data-target="generatedHashtags">Copy</button>
-                            </div>
-                            <div class="result-actions">
-                                <button id="useGeneratedBtn" class="btn btn-secondary">Save to Item</button>
-                                <button id="sendToPublishBtn" class="btn btn-primary">Send to Publish →</button>
+                    <div class="detail-field-section">
+                        <div class="detail-field-header">
+                            <label>Caption <span class="ai-badge">AI-enabled</span></label>
+                            <div class="detail-field-actions">
+                                <button class="btn btn-sm btn-secondary" id="detailCopyCaptionBtn">Copy</button>
+                                <button class="btn btn-sm btn-secondary" id="detailGenerateBtn"><span class="icon">✨</span> Generate</button>
                             </div>
                         </div>
+                        <div class="detail-editable" id="detailCaption" contenteditable="true" spellcheck="true" data-placeholder="No caption yet — click Generate or type here"></div>
                     </div>
-                </section>
-
-                <div class="flow-arrow-col">›</div>
-
-                <!-- 3: Publish -->
-                <section class="panel publish-panel">
-                    <h2>Publish</h2>
-                    <div id="publishEmpty" class="publish-empty-state">
-                        <p>Generate content and hit<br><strong>Send to Publish →</strong></p>
-                    </div>
-                    <div id="publishReady" class="hidden">
-                        <div class="publish-copy-group">
-                            <label>Caption</label>
-                            <div class="publish-text" id="publishCaption"></div>
-                            <button class="btn btn-secondary publish-copy-btn" id="copyPublishCaption">Copy Caption</button>
-                        </div>
-                        <div class="publish-copy-group">
+                    <div class="detail-field-section">
+                        <div class="detail-field-header">
                             <label>Hashtags</label>
-                            <div class="publish-text hashtags" id="publishHashtags"></div>
-                            <button class="btn btn-secondary publish-copy-btn" id="copyPublishHashtags">Copy Hashtags</button>
+                            <button class="btn btn-sm btn-secondary" id="detailCopyHashtagsBtn">Copy</button>
+                        </div>
+                        <div class="detail-editable hashtags" id="detailHashtags" contenteditable="true" spellcheck="false" data-placeholder="No hashtags yet"></div>
+                    </div>
+                    <div class="detail-action-row">
+                        <button class="btn btn-secondary" id="detailSaveBtn">Save</button>
+                        <button class="btn btn-primary" id="detailPublishBtn">Publish →</button>
+                    </div>
+                    <div class="detail-publish-section hidden" id="detailPublishSection">
+                        <div class="publish-caption-preview">
+                            <div class="publish-caption-header">
+                                <span class="publish-caption-label">Final Caption</span>
+                                <button class="btn btn-sm btn-secondary" id="publishCopyCaptionBtn">Copy</button>
+                            </div>
+                            <div id="publishCaptionText" class="publish-caption-text"></div>
+                            <div id="publishHashtagsText" class="publish-hashtags-text"></div>
                         </div>
                         <div class="publish-launchers">
                             <a href="https://www.tiktok.com/upload" target="_blank" class="btn-launch tiktok-launch">🎵 Open TikTok ↗</a>
@@ -258,9 +239,9 @@
                             <label class="check-item"><input type="checkbox" class="pub-check"> Link saved back to library</label>
                         </div>
                     </div>
-                </section>
-
+                </div>
             </div>
+
         </div>
 
         <!-- Analytics -->
@@ -496,14 +477,13 @@
                 </div>
                 <p class="crop-picker-subtitle">Choose your avatar crop for the dashboard</p>
                 <div class="crop-grid" id="cropGrid">
-                    <button class="crop-option active" data-crop="🥕" title="Carrot">🥕</button>
-                    <button class="crop-option" data-crop="🌽" title="Corn">🌽</button>
-                    <button class="crop-option" data-crop="🍅" title="Tomato">🍅</button>
-                    <button class="crop-option" data-crop="🥦" title="Broccoli">🥦</button>
-                    <button class="crop-option" data-crop="🍆" title="Eggplant">🍆</button>
-                    <button class="crop-option" data-crop="🌶️" title="Chili">🌶️</button>
-                    <button class="crop-option" data-crop="🥬" title="Leafy greens">🥬</button>
-                    <button class="crop-option" data-crop="🌻" title="Sunflower">🌻</button>
+                    <button class="crop-option active" data-crop="🥕" data-hue="orange" title="Carrot">🥕</button>
+                    <button class="crop-option" data-crop="🌶️" data-hue="red"    title="Chili pepper">🌶️</button>
+                    <button class="crop-option" data-crop="🍊" data-hue="amber"  title="Orange">🍊</button>
+                    <button class="crop-option" data-crop="🌽" data-hue="yellow" title="Corn">🌽</button>
+                    <button class="crop-option" data-crop="🥬" data-hue="sage"   title="Lettuce">🥬</button>
+                    <button class="crop-option" data-crop="🫐" data-hue="indigo" title="Blueberry">🫐</button>
+                    <button class="crop-option" data-crop="🍆" data-hue="plum"   title="Eggplant">🍆</button>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" id="cancelCropPicker">Cancel</button>
@@ -516,19 +496,19 @@
         <div id="csvImportModal" class="modal hidden">
             <div class="modal-content csv-import-content">
                 <div class="modal-header">
-                    <h3>Import CSV</h3>
+                    <h3>Import Data</h3>
                     <button class="modal-close" id="closeCsvImport">&times;</button>
                 </div>
 
                 <!-- Step 1: Upload -->
                 <div id="csvStep1">
-                    <p class="csv-help-text">Export your analytics from <strong>TikTok Creator Portal</strong> or <strong>Meta Business Suite</strong> and upload the CSV here. Seedboard auto-detects the format.</p>
+                    <p class="csv-help-text">Export your analytics from <strong>TikTok Creator Portal</strong> or <strong>Meta Business Suite</strong> and upload here. Supports <strong>.csv</strong>, <strong>.txt</strong> (tab-separated), and <strong>.json</strong> — Seedboard auto-detects the format.</p>
                     <div class="csv-drop-zone" id="csvDropZone">
                         <div class="csv-drop-icon">📂</div>
-                        <p>Drag & drop your CSV file here</p>
+                        <p>Drag & drop your file here</p>
                         <p class="csv-drop-sub">or</p>
                         <label class="btn btn-secondary" for="csvFileInput">Choose File</label>
-                        <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" style="display:none">
+                        <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt,.json" style="display:none">
                     </div>
                     <div class="csv-template-row">
                         <span class="csv-template-label">Don't have an export yet?</span>
@@ -561,6 +541,31 @@
         <div id="loadingOverlay" class="loading-overlay hidden">
             <div class="spinner"></div>
             <p id="loadingText">Loading...</p>
+        </div>
+
+        <!-- API Key Modal -->
+        <div id="apiKeyModal" class="modal hidden">
+            <div class="modal-content" style="max-width: 480px;">
+                <div class="modal-header">
+                    <h3>Enter Your Anthropic API Key</h3>
+                    <button class="modal-close" id="closeApiKeyModal">&times;</button>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <p style="margin: 0 0 0.75rem; color: var(--text-secondary); font-size: 0.9rem;">
+                        AI caption generation uses the Claude API. Enter your own API key to use this feature.
+                        Your key is stored in your browser only and never saved on the server.
+                    </p>
+                    <p style="margin: 0 0 1rem; font-size: 0.85rem;">
+                        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: var(--accent);">Get an API key from Anthropic →</a>
+                    </p>
+                    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." style="width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.9rem; box-sizing: border-box;">
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end;">
+                        <button class="btn btn-secondary" id="apiKeyClearBtn">Clear Key</button>
+                        <button class="btn btn-secondary" id="apiKeyCancelBtn">Cancel</button>
+                        <button class="btn btn-primary" id="apiKeySaveBtn">Save & Continue</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Toast Notification -->

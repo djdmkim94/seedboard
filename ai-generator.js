@@ -6,6 +6,32 @@
 const AIGenerator = {
     // API endpoint (local proxy server)
     API_ENDPOINT: '/api/generate',
+    STORAGE_KEY: 'seedboard_api_key',
+
+    /**
+     * Get stored API key from localStorage
+     */
+    getApiKey() {
+        return localStorage.getItem(this.STORAGE_KEY) || '';
+    },
+
+    /**
+     * Save API key to localStorage
+     */
+    setApiKey(key) {
+        if (key) {
+            localStorage.setItem(this.STORAGE_KEY, key.trim());
+        } else {
+            localStorage.removeItem(this.STORAGE_KEY);
+        }
+    },
+
+    /**
+     * Check if an API key is available
+     */
+    hasApiKey() {
+        return !!this.getApiKey();
+    },
 
     /**
      * Generate content from a summary
@@ -17,13 +43,18 @@ const AIGenerator = {
             throw new Error('Summary is required');
         }
 
+        const apiKey = this.getApiKey();
+        if (!apiKey) {
+            throw new Error('API_KEY_REQUIRED');
+        }
+
         try {
             const response = await fetch(this.API_ENDPOINT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ summary: summary.trim() }),
+                body: JSON.stringify({ summary: summary.trim(), apiKey }),
             });
 
             if (!response.ok) {
