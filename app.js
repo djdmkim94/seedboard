@@ -61,6 +61,12 @@ const App = {
         document.getElementById('closeViewBtn').addEventListener('click', () => this.closeViewModal());
         document.getElementById('editFromView').addEventListener('click', () => this.editFromView());
 
+        // API key modal
+        document.getElementById('apiKeySaveBtn').addEventListener('click', () => this.saveApiKey());
+        document.getElementById('apiKeyClearBtn').addEventListener('click', () => this.clearApiKey());
+        document.getElementById('apiKeyCancelBtn').addEventListener('click', () => this.hideApiKeyModal());
+        document.getElementById('closeApiKeyModal').addEventListener('click', () => this.hideApiKeyModal());
+
         // Detail panel
         document.getElementById('detailGenerateBtn').addEventListener('click', () => this.generateForDetail());
         document.getElementById('detailSaveBtn').addEventListener('click', () => this.saveDetailToItem());
@@ -523,6 +529,12 @@ const App = {
         const item = this.content.find(c => c.id === this.selectedLibraryId);
         if (!item) return;
 
+        // Check for API key first
+        if (!AIGenerator.hasApiKey()) {
+            this.showApiKeyModal();
+            return;
+        }
+
         const summary = [item.summary, item.title].filter(Boolean).join(' — ');
         const btn = document.getElementById('detailGenerateBtn');
         btn.disabled = true;
@@ -534,11 +546,44 @@ const App = {
             document.getElementById('detailHashtags').textContent = AIGenerator.formatHashtags(result.hashtags);
             this.showToast('Caption generated — edit and save!', 'success');
         } catch (error) {
-            this.showToast('Generation failed: ' + error.message, 'error');
+            if (error.message === 'API_KEY_REQUIRED') {
+                this.showApiKeyModal();
+            } else {
+                this.showToast('Generation failed: ' + error.message, 'error');
+            }
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<span class="icon">✨</span> Generate';
         }
+    },
+
+    showApiKeyModal() {
+        const modal = document.getElementById('apiKeyModal');
+        const input = document.getElementById('apiKeyInput');
+        input.value = AIGenerator.getApiKey();
+        modal.classList.remove('hidden');
+    },
+
+    hideApiKeyModal() {
+        document.getElementById('apiKeyModal').classList.add('hidden');
+    },
+
+    saveApiKey() {
+        const input = document.getElementById('apiKeyInput');
+        const key = input.value.trim();
+        if (!key) {
+            this.showToast('Please enter an API key', 'error');
+            return;
+        }
+        AIGenerator.setApiKey(key);
+        this.hideApiKeyModal();
+        this.showToast('API key saved', 'success');
+    },
+
+    clearApiKey() {
+        AIGenerator.setApiKey(null);
+        document.getElementById('apiKeyInput').value = '';
+        this.showToast('API key removed', 'success');
     },
 
     /**
@@ -583,6 +628,10 @@ const App = {
             return;
         }
 
+        document.getElementById('publishCaptionText').textContent = caption;
+        document.getElementById('publishHashtagsText').textContent = hashtags;
+        document.getElementById('publishCopyCaptionBtn').onclick = () =>
+            this.copyToClipboard([caption, hashtags].filter(Boolean).join('\n'));
         document.getElementById('detailPublishSection').classList.remove('hidden');
         document.querySelectorAll('#detailPublishSection .pub-check').forEach(cb => { cb.checked = false; });
         document.getElementById('detailPublishSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });

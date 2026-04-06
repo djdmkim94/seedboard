@@ -219,6 +219,14 @@
                         <button class="btn btn-primary" id="detailPublishBtn">Publish →</button>
                     </div>
                     <div class="detail-publish-section hidden" id="detailPublishSection">
+                        <div class="publish-caption-preview">
+                            <div class="publish-caption-header">
+                                <span class="publish-caption-label">Final Caption</span>
+                                <button class="btn btn-sm btn-secondary" id="publishCopyCaptionBtn">Copy</button>
+                            </div>
+                            <div id="publishCaptionText" class="publish-caption-text"></div>
+                            <div id="publishHashtagsText" class="publish-hashtags-text"></div>
+                        </div>
                         <div class="publish-launchers">
                             <a href="https://www.tiktok.com/upload" target="_blank" class="btn-launch tiktok-launch">🎵 Open TikTok ↗</a>
                             <a href="https://www.instagram.com" target="_blank" class="btn-launch instagram-launch">📸 Open Instagram ↗</a>
@@ -533,6 +541,31 @@
         <div id="loadingOverlay" class="loading-overlay hidden">
             <div class="spinner"></div>
             <p id="loadingText">Loading...</p>
+        </div>
+
+        <!-- API Key Modal -->
+        <div id="apiKeyModal" class="modal hidden">
+            <div class="modal-content" style="max-width: 480px;">
+                <div class="modal-header">
+                    <h3>Enter Your Anthropic API Key</h3>
+                    <button class="modal-close" id="closeApiKeyModal">&times;</button>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <p style="margin: 0 0 0.75rem; color: var(--text-secondary); font-size: 0.9rem;">
+                        AI caption generation uses the Claude API. Enter your own API key to use this feature.
+                        Your key is stored in your browser only and never saved on the server.
+                    </p>
+                    <p style="margin: 0 0 1rem; font-size: 0.85rem;">
+                        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: var(--accent);">Get an API key from Anthropic →</a>
+                    </p>
+                    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." style="width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.9rem; box-sizing: border-box;">
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end;">
+                        <button class="btn btn-secondary" id="apiKeyClearBtn">Clear Key</button>
+                        <button class="btn btn-secondary" id="apiKeyCancelBtn">Cancel</button>
+                        <button class="btn btn-primary" id="apiKeySaveBtn">Save & Continue</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Toast Notification -->
